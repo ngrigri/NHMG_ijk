@@ -81,9 +81,6 @@ contains
     northeast = grid(lev)%neighb(7)
     northwest = grid(lev)%neighb(8)
 
-    !- 
-    !-
-
     sendS => gbuffers(lev)%sendS2D1
     recvS => gbuffers(lev)%recvS2D1
     sendN => gbuffers(lev)%sendN2D1
@@ -129,7 +126,7 @@ contains
     elseif ((lbc).and.(trim(cuv)=='v')) then
 !       a2d(1,:) = zero
     else !!Homogenous Neumann  
-       a2D(1-nh:0,1:nx) = a2D(nh:1:-1,1:nx)
+       a2D(1:nx,1-nh:0) = a2D(1:nx,nh:1:-1) ! ijk
     endif
 
     if (east.ne.MPI_PROC_NULL) then
@@ -140,7 +137,7 @@ contains
     elseif ((lbc).and.(trim(cuv)=='u')) then
 !       a2d(:,nx+1) = zero
     else !!Homogenous Neumann 
-       a2D(1:ny,nx+1) = a2D(1:ny,nx)
+       a2D(,nx+1,1:ny) = a2D(nx,1:ny) ! ijk
     endif
 
     if (north.ne.MPI_PROC_NULL) then
@@ -151,7 +148,7 @@ contains
     elseif ((lbc).and.(trim(cuv)=='v')) then 
 !       a2d(ny+1,:) = zero
     else !!Homogenous Neumann  
-       a2D(ny+1:ny+nh,1:nx) = a2D(ny:ny-nh+1:-1,1:nx)
+       a2D(1:nx,ny+1:ny+nh) = a2D(1:nx,ny:ny-nh+1:-1) ! ijk
     endif
 
     if (west.ne.MPI_PROC_NULL) then
@@ -162,7 +159,7 @@ contains
     elseif ((lbc).and.(trim(cuv)=='u')) then
 !       a2d(:,1) = zero
     else !!Homogenous Neumann
-       a2D(1:ny,1-nh:0) = a2D(1:ny,nh:1:-1)
+       a2D(1-nh:0,1:ny) = a2D(nh:1:-1,1:ny) ! ijk
     endif
 
     flag_sw_s = .false.
@@ -179,7 +176,7 @@ contains
     elseif (west.ne.MPI_PROC_NULL) then
        flag_sw_w = .true.
     else !!Homogenous Neumann
-       a2D(1-nh:0,1-nh:0) = a2D(nh:1:-1,nh:1:-1)
+       a2D(1-nh:0,1-nh:0) = a2D(nh:1:-1,nh:1:-1) ! ijk
     endif
 
     flag_se_s = .false.
@@ -196,7 +193,7 @@ contains
     elseif (east.ne.MPI_PROC_NULL) then
        flag_se_e = .true.
     else !!Homogenous Neumann
-       a2D(1-nh:0,nx+1:nx+nh) = a2D(nh:1:-1,nx:nx-nh+1:-1)
+       a2D(nx+1:nx+nh,1-nh:0) = a2D(nx:nx-nh+1:-1,nh:1:-1) ! ijk
     endif
 
     flag_ne_n = .false.
@@ -214,7 +211,7 @@ contains
     elseif (east.ne.MPI_PROC_NULL) then
        flag_ne_e = .true.
     else !!Homogenous Neumann
-       a2D(ny+1:ny+nh,nx+1:nx+nh) = a2D(ny:ny-nh+1:-1,nx:nx-nh+1:-1)
+       a2D(nx+1:nx+nh,ny+1:ny+nh) = a2D(nx:nx-nh+1:-1,ny:ny-nh+1:-1) ! ijk
     endif
 
     flag_nw_n = .false.
@@ -232,7 +229,7 @@ contains
     elseif (west.ne.MPI_PROC_NULL) then
        flag_nw_w = .true.
     else !!Homogenous Neumann  
-       a2D(ny+1:ny+nh,1-nh:0) = a2D(ny:ny-nh+1:-1,nh:1:-1)
+       a2D(1-nh:0,ny+1:ny+nh) = a2D(nh:1:-1,ny:ny-nh+1:-1) ! ijk
     endif
 
     !--------------------!
@@ -240,7 +237,7 @@ contains
     !--------------------!
 
     if (south.ne.MPI_PROC_NULL) then
-       sendS(:,:) = a2D(1:nh,1:nx)  
+       sendS(:,:) = a2D(1:nx,1:nh)  ! ijk
        call MPI_ISend(                              &
             sendS,nx*nh,MPI_DOUBLE_PRECISION,south, &
             sntag,MPI_COMM_WORLD,req(9),ierr)
@@ -248,7 +245,7 @@ contains
     endif
 
     if (east.ne.MPI_PROC_NULL) then
-       sendE(:,:) = a2D(1:ny,nx-nh+1:nx) 
+       sendE(:,:) = a2D(nx-nh+1:nx,1:ny) ! ijk
        call MPI_ISend(                             &
             sendE,ny*nh,MPI_DOUBLE_PRECISION,east, &
             ewtag,MPI_COMM_WORLD,req(10),ierr)
@@ -256,7 +253,7 @@ contains
     endif
 
     if (north.ne.MPI_PROC_NULL) then
-       sendN(:,:) = a2D(ny-nh+1:ny,1:nx)
+       sendN(:,:) = a2D(1:nx, ny-nh+1:ny) ! ijk
        call MPI_ISend(                              &
             sendN,nx*nh,MPI_DOUBLE_PRECISION,north, &
             nstag,MPI_COMM_WORLD,req(11),ierr)
@@ -264,7 +261,7 @@ contains
     endif
 
     if (west.ne.MPI_PROC_NULL) then
-       sendW(:,:) = a2D(1:ny,1:nh)  
+       sendW(:,:) = a2D(1:nh, 1:ny)  ! ijk
        call MPI_ISend(                             &
             sendW,ny*nh,MPI_DOUBLE_PRECISION,west, &
             wetag,MPI_COMM_WORLD,req(12),ierr)
@@ -273,7 +270,7 @@ contains
 
 
     if (southwest.ne.MPI_PROC_NULL) then
-       sendSW(:,:) = a2D(1:nh,1:nh)  
+       sendSW(:,:) = a2D(1:nh,1:nh)  ! ijk
        call MPI_ISend(                                   &
             sendSW,nh*nh,MPI_DOUBLE_PRECISION,southwest, &
             swnetag,MPI_COMM_WORLD,req(13),ierr)
@@ -281,7 +278,7 @@ contains
     endif
 
     if (southeast.ne.MPI_PROC_NULL) then
-       sendSE(:,:) = a2D(1:nh,nx-nh+1:nx)  
+       sendSE(:,:) = a2D(nx-nh+1:nx,1:nh)  ! ijk
        call MPI_ISend(                                   &
             sendSE,nh*nh,MPI_DOUBLE_PRECISION,southeast, &
             senwtag,MPI_COMM_WORLD,req(14),ierr)
@@ -289,7 +286,7 @@ contains
     endif
 
     if (northeast.ne.MPI_PROC_NULL) then
-       sendNE(:,:) = a2D(ny-nh+1:ny,nx-nh+1:nx) 
+       sendNE(:,:) = a2D(nx-nh+1:nx, ny-nh+1:ny) ! ijk
        call MPI_ISend(                                   &
             sendNE,nh*nh,MPI_DOUBLE_PRECISION,northeast, &
             neswtag,MPI_COMM_WORLD,req(15),ierr)
@@ -297,7 +294,7 @@ contains
     endif
 
     if (northwest.ne.MPI_PROC_NULL) then
-       sendNW(:,:) = a2D(ny-nh+1:ny,1:nh)
+       sendNW(:,:) = a2D(1:nh, ny-nh+1:ny) ! ijk
        call MPI_ISend(                                   &
             sendNW,nh*nh,MPI_DOUBLE_PRECISION,northwest, &
             nwsetag,MPI_COMM_WORLD,req(16),ierr)
@@ -331,28 +328,28 @@ contains
 
        ! be unpacked only once.
        if (indx.eq.1) then ! south
-          a2D(1-nh:0,1:nx)  = recvS(:,:)
+          a2D(1:nx, 1-nh:0)  = recvS(:,:) ! ijk
 
        elseif (indx.eq.2) then ! east
-          a2D(1:ny,nx+1:nx+nh) = recvE(:,:)
+          a2D(nx+1:nx+nh, 1:ny) = recvE(:,:) ! ijk
 
        elseif (indx.eq.3) then ! north
-          a2D(ny+1:ny+nh,1:nx)  = recvN (:,:)
+          a2D(1:nx, ny+1:ny+nh)  = recvN (:,:) ! ijk
 
        elseif (indx.eq.4) then ! west
-          a2D(1:ny,1-nh:0) = recvW(:,:)
+          a2D(1-nh:0,1:ny) = recvW(:,:) ! ijk
 
        elseif (indx.eq.5) then ! southwest
-          a2D(1-nh:0,1-nh:0) = recvSW(:,:)
+          a2D(1-nh:0,1-nh:0) = recvSW(:,:)  ! ijk
 
        elseif (indx.eq.6) then ! southeast
-          a2D(1-nh:0,nx+1:nx+nh) = recvSE(:,:)
+          a2D(nx+1:nx+nh,1-nh:0) = recvSE(:,:) ! ijk
 
        elseif (indx.eq.7) then ! northeast
-          a2D(ny+1:ny+nh,nx+1:nx+nh) = recvNE(:,:)
+          a2D(nx+1:nx+nh,ny+1:ny+nh) = recvNE(:,:) ! ijk
 
        elseif (indx.eq.8) then ! northwest
-          a2D(ny+1:ny+nh,1-nh:0) = recvNW(:,:)
+          a2D(1-nh:0,ny+1:ny+nh) = recvNW(:,:) ! ijk
 
        endif
 
@@ -360,29 +357,28 @@ contains
 
     !- corners on physical boundarie if a flag is true-!
     if (flag_sw_s) then
-       a2D(1-nh:0,1-nh:0) = a2D(1-nh:0,nh:1:-1)
+       a2D(1-nh:0,1-nh:0) = a2D(nh:1:-1,1-nh:0) ! ijk
     elseif (flag_sw_w) then
-       a2D(1-nh:0,1-nh:0) = a2D(nh:1:-1,1-nh:0)
+       a2D(1-nh:0,1-nh:0) = a2D(1-nh:0,nh:1:-1) ! ijk
     endif
 
     if (flag_se_s) then
-       a2D(1-nh:0,nx+1:nx+nh) = a2D(1-nh:0,nx:nx-nh+1:-1)
+       a2D(nx+1:nx+nh,1-nh:0) = a2D(nx:nx-nh+1:-1,1-nh:0) ! ijk
     elseif (flag_se_e) then
-       a2D(1-nh:0,nx+1:nx+nh) = a2D(nh:1:-1,nx+1:nx+nh)
+       a2D(nx+1:nx+nh,1-nh:0) = a2D(nx+1:nx+nh,nh:1:-1) ! ijk
     endif
 
     if (flag_ne_n) then
-       a2D(ny+1:ny+nh,nx+1:nx+nh) = a2D(ny+1:ny+nh,nx:nx-nh+1:-1)
+       a2D(nx+1:nx+nh,ny+1:ny+nh) = a2D(nx:nx-nh+1:-1,ny+1:ny+nh) ! ijk
     elseif (flag_ne_e) then
-       a2D(ny+1:ny+nh,nx+1:nx+nh) = a2D(ny:ny-nh+1:-1,nx+1:nx+nh)
+       a2D(nx+1:nx+nh,ny+1:ny+nh) = a2D(nx+1:nx+nh,ny:ny-nh+1:-1) ! ijk
     endif
 
     if (flag_nw_n) then
-       a2D(ny+1:ny+nh,1-nh:0) = a2D(ny+1:ny+nh,nh:1:-1)
+       a2D(1-nh:0,ny+1:ny+nh) = a2D(nh:1:-1,ny+1:ny+nh) ! ijk
     elseif (flag_nw_w) then
-       a2D(ny+1:ny+nh,1-nh:0) = a2D(ny:ny-nh+1:-1,1-nh:0)
+       a2D(1-nh:0,ny+1:ny+nh) = a2D(1-nh:0,ny:ny-nh+1:-1) ! ijk
     endif
-
 
   end subroutine fill_halo_2D
 
@@ -392,7 +388,7 @@ contains
   subroutine fill_halo_3D_relax(lev,p,nx,ny,nz)
 
     integer(kind=ip), intent(in):: lev
-    real(kind=rp), dimension(nz,0:ny+1,0:nx+1), intent(inout)::p
+    real(kind=rp), dimension(0:nx+1,0:ny+1,nz), intent(inout)::p ! ijk
 
     integer(kind=ip) :: nx, ny, nz
     integer(kind=ip) :: nh
@@ -422,7 +418,7 @@ contains
 
     nx = grid(lev)%nx
     ny = grid(lev)%ny
-    nz = size(p,dim=1)
+    nz = size(p,dim=3) ! ijk
 
     nh = 1
 
@@ -434,7 +430,6 @@ contains
     southeast = grid(lev)%neighb(6)
     northeast = grid(lev)%neighb(7)
     northwest = grid(lev)%neighb(8)
-
 
     if (nz == grid(lev)%nz) then
 
@@ -503,7 +498,7 @@ contains
             nstag,MPI_COMM_WORLD,req(1),ierr)
        comm(1)=1
     else !!Homogenous Neumann  
-       p(:,1-nh:0,1:nx) = p(:,nh:1:-1,1:nx)
+       p(1:nx,1-nh:0,:) = p(1:nx,nh:1:-1,:) ! ijk
     endif
 
     if (east.ne.MPI_PROC_NULL) then
@@ -512,7 +507,7 @@ contains
             wetag,MPI_COMM_WORLD,req(2),ierr)
        comm(2)=2
     else  !!Homogenous Neumann
-       p(:,1:ny,nx+1:nx+nh) = p(:,1:ny,nx:nx-nh+1:-1)
+       p(nx+1:nx+nh,1:ny,:) = p(nx:nx-nh+1:-1,1:ny,:) ! ijk
     endif
 
     if (north.ne.MPI_PROC_NULL) then
@@ -521,7 +516,7 @@ contains
             sntag,MPI_COMM_WORLD,req(3),ierr)
        comm(3)=3
     else  !!Homogenous Neumann  
-       p(:,ny+1:ny+nh,1:nx) = p(:,ny:ny-nh+1:-1,1:nx)
+       p(1:nx,ny+1:ny+nh,:) = p(1:nx,ny:ny-nh+1:-1,:) ! ijk
     endif
 
     if (west.ne.MPI_PROC_NULL) then
@@ -530,7 +525,7 @@ contains
             ewtag,MPI_COMM_WORLD,req(4),ierr)
        comm(4)=4
     else   !!Homogenous Neumann
-       p(:,1:ny,1-nh:0) = p(:,1:ny,nh:1:-1)
+       p(1-nh:0,1:ny,:) = p(nh:1:-1,1:ny,:) ! ijk
     endif
 
     flag_sw_s = .false.
@@ -545,7 +540,7 @@ contains
     elseif (west.ne.MPI_PROC_NULL) then
        flag_sw_w = .true.
     else !!Homogenous Neumann  
-       p(:,1-nh:0,1-nh:0) = p(:,nh:1:-1,nh:1:-1)
+       p(1-nh:0,1-nh:0,:) = p(nh:1:-1,nh:1:-1,:) ! ijk
     endif
 
     flag_se_s = .false.
@@ -560,7 +555,7 @@ contains
     elseif (east.ne.MPI_PROC_NULL) then
        flag_se_e = .true.
     else!!Homogenous Neumann  
-       p(:,1-nh:0,nx+1:nx+nh) = p(:,nh:1:-1,nx:nx-nh+1:-1)
+       p(nx+1:nx+nh,1-nh:0,:) = p(nx:nx-nh+1:-1,nh:1:-1,:) ! ijk
     endif
 
     flag_ne_n = .false.
@@ -575,7 +570,7 @@ contains
     elseif (east.ne.MPI_PROC_NULL) then
        flag_ne_e = .true.
     else!!Homogenous Neumann  
-       p(:,ny+1:ny+nh,nx+1:nx+nh) = p(:,ny:ny-nh+1:-1,nx:nx-nh+1:-1)
+       p(nx+1:nx+nh,ny+1:ny+nh,:) = p(nx:nx-nh+1:-1,ny:ny-nh+1:-1,:) ! ijk
     endif
 
     flag_nw_n = .false.
@@ -590,7 +585,7 @@ contains
     elseif (west.ne.MPI_PROC_NULL) then
        flag_nw_w = .true.
     else !!Homogenous Neumann  
-       p(:,ny+1:ny+nh,1-nh:0) = p(:,ny:ny-nh+1:-1,nh:1:-1)
+       p(1-nh:0,ny+1:ny+nh,:) = p(nh:1:-1,ny:ny-nh+1:-1,:) ! ijk
     endif
 
     !--------------------!
@@ -598,7 +593,7 @@ contains
     !--------------------!
 
     if (south.ne.MPI_PROC_NULL) then
-       sendS = p(:,1:nh,1:nx)  
+       sendS = p(1:nx,1:nh,:)  ! ijk
        call MPI_ISend(                              &
             sendS,nz*nx*nh,MPI_DOUBLE_PRECISION,south, &
             sntag,MPI_COMM_WORLD,req(9),ierr)
@@ -606,7 +601,7 @@ contains
     endif
 
     if (east.ne.MPI_PROC_NULL) then
-       sendE = p(:,1:ny,nx-nh+1:nx) 
+       sendE = p(nx-nh+1:nx,1:ny,:) ! ijk
        call MPI_ISend(                             &
             sendE,nz*ny*nh,MPI_DOUBLE_PRECISION,east, &
             ewtag,MPI_COMM_WORLD,req(10),ierr)
@@ -614,7 +609,7 @@ contains
     endif
 
     if (north.ne.MPI_PROC_NULL) then
-       sendN = p(:,ny-nh+1:ny,1:nx)
+       sendN = p(1:nx,ny-nh+1:ny,:) ! ijk
        call MPI_ISend(                              &
             sendN,nz*nx,MPI_DOUBLE_PRECISION,north, &
             nstag,MPI_COMM_WORLD,req(11),ierr)
@@ -622,7 +617,7 @@ contains
     endif
 
     if (west.ne.MPI_PROC_NULL) then
-       sendW = p(:,1:ny,1:nh)  
+       sendW = p(1:nh,1:ny,:)  ! ijk
        call MPI_ISend(                             &
             sendW,nz*ny*nh,MPI_DOUBLE_PRECISION,west, &
             wetag,MPI_COMM_WORLD,req(12),ierr)
@@ -630,7 +625,7 @@ contains
     endif
 
     if (southwest.ne.MPI_PROC_NULL) then
-       sendSW = p(:,1:nh,1:nh)  
+       sendSW = p(1:nh,1:nh,:)  ! ijk
        call MPI_ISend(                                &
             sendSW,nz*nh*nh,MPI_DOUBLE_PRECISION,southwest, &
             swnetag,MPI_COMM_WORLD,req(13),ierr)
@@ -638,7 +633,7 @@ contains
     endif
 
     if (southeast.ne.MPI_PROC_NULL) then
-       sendSE = p(:,1:nh,nx-nh+1:nx)  
+       sendSE = p(nx-nh+1:nx,1:nh,:)  ! ijk
        call MPI_ISend(                                &
             sendSE,nz*nh*nh,MPI_DOUBLE_PRECISION,southeast, &
             senwtag,MPI_COMM_WORLD,req(14),ierr)
@@ -646,7 +641,7 @@ contains
     endif
 
     if (northeast.ne.MPI_PROC_NULL) then
-       sendNE = p(:,ny-nh+1:ny,nx-nh+1:nx) 
+       sendNE = p(nx-nh+1:nx,ny-nh+1:ny,:) ! ijk 
        call MPI_ISend(                                &
             sendNE,nz*nh*nh,MPI_DOUBLE_PRECISION,northeast, &
             neswtag,MPI_COMM_WORLD,req(15),ierr)
@@ -654,7 +649,7 @@ contains
     endif
 
     if (northwest.ne.MPI_PROC_NULL) then
-       sendNW = p(:,ny-nh+1:ny,1:nh)
+       sendNW = p(1:nh,ny-nh+1:ny,:) ! ijk
        call MPI_ISend(                                &
             sendNW,nz*nh*nh,MPI_DOUBLE_PRECISION,northwest, &
             nwsetag,MPI_COMM_WORLD,req(16),ierr)
@@ -687,55 +682,55 @@ contains
 
        ! be unpacked only once.
        if (indx.eq.1) then ! south
-          p(:,1-nh:0,1:nx)  = recvS
+          p(1:nx,1-nh:0,:)  = recvS ! ijk
 
        elseif (indx.eq.2) then ! east
-          p(:,1:ny,nx+1:nx+nh) = recvE
+          p(nx+1:nx+nh,1:ny,:) = recvE ! ijk
 
        elseif (indx.eq.3) then ! north
-          p(:,ny+1:ny+nh,1:nx)  = recvN 
+          p(1:nx,ny+1:ny+nh,:)  = recvN  ! ijk
 
        elseif (indx.eq.4) then ! west
-          p(:,1:ny,1-nh:0) = recvW
+          p(1-nh:0,1:ny,:) = recvW ! ijk
 
        elseif (indx.eq.5) then ! southwest
-          p(:,1-nh:0,1-nh:0) = recvSW
+          p(1-nh:0,1-nh:0,:) = recvSW ! ijk
 
        elseif (indx.eq.6) then ! southeast
-          p(:,1-nh:0,nx+1:nx+nh) = recvSE
+          p(nx+1:nx+nh,1-nh:0,:) = recvSE ! ijk
 
        elseif (indx.eq.7) then ! northeast
-          p(:,ny+1:ny+nh,nx+1:nx+nh) = recvNE
+          p(nx+1:nx+nh,ny+1:ny+nh,:) = recvNE ! ijk
 
        elseif (indx.eq.8) then ! northwest
-          p(:,ny+1:ny+nh,1-nh:0) = recvNW
+          p(1-nh:0,ny+1:ny+nh,:) = recvNW ! ijk
        endif
 
     enddo      !<-- while
 
     !- corners on physical boundarie if a flag is true-!
     if (flag_sw_s) then
-       p(:,1-nh:0,1-nh:0) = p(:,1-nh:0,nh:1:-1)
+       p(1-nh:0,1-nh:0,:) = p(nh:1:-1,1-nh:0,:) ! ijk
     elseif (flag_sw_w) then
-       p(:,1-nh:0,1-nh:0) = p(:,nh:1:-1,1-nh:0)
+       p(1-nh:0,1-nh:0,:) = p(1-nh:0,nh:1:-1,:) ! ijk
     endif
 
     if (flag_se_s) then
-       p(:,1-nh:0,nx+1:nx+nh) = p(:,1-nh:0,nx:nx-nh+1:-1)
+       p(nx+1:nx+nh,1-nh:0,:) = p(nx:nx-nh+1:-1,1-nh:0,:) ! ijk
     elseif (flag_se_e) then
-       p(:,1-nh:0,nx+1:nx+nh) = p(:,nh:1:-1,nx+1:nx+nh)
+       p(nx+1:nx+nh,1-nh:0,:) = p(nx+1:nx+nh,nh:1:-1,:) ! ijk
     endif
 
     if (flag_ne_n) then
-       p(:,ny+1:ny+nh,nx+1:nx+nh) = p(:,ny+1:ny+nh,nx:nx-nh+1:-1)
+       p(nx+1:nx+nh,ny+1:ny+nh,:) = p(nx:nx-nh+1:-1,ny+1:ny+nh,:) ! ijk
     elseif (flag_ne_e) then
-       p(:,ny+1:ny+nh,nx+1:nx+nh) = p(:,ny:ny-nh+1:-1,nx+1:nx+nh)
+       p(nx+1:nx+nh,ny+1:ny+nh,:) = p(nx+1:nx+nh,ny:ny-nh+1:-1,:) ! ijk
     endif
 
     if (flag_nw_n) then
-       p(:,ny+1:ny+nh,1-nh:0) = p(:,ny+1:ny+nh,nh:1:-1)
+       p(1-nh:0,ny+1:ny+nh,:) = p(nh:1:-1,ny+1:ny+nh,:) ! ijk
     elseif (flag_nw_w) then
-       p(:,ny+1:ny+nh,1-nh:0) = p(:,ny:ny-nh+1:-1,1-nh:0)
+       p(1-nh:0,ny+1:ny+nh,:) = p(1-nh:0,ny:ny-nh+1:-1,:) ! ijk
     endif
 
   end subroutine fill_halo_3D_relax
@@ -787,7 +782,7 @@ contains
 
     nx = grid(lev)%nx
     ny = grid(lev)%ny
-    nz = size(p,dim=1)
+    nz = size(p,dim=3) ! ijk
 
     nh = (size(p,dim=2) - ny ) / 2
 
@@ -953,12 +948,11 @@ contains
     elseif ((lbc).and.(trim(cuv)=='v')) then
 !       p(:,1,:) = zero !- assume that nh = 1
     else !!Homogenous Neumann
-       !!       p(:,1-nh:0,1:nx) = p(:,nh:1:-1,1:nx)
        do ih = 1, nh
           if (ih == 1) then
-             p(:,0,1:nx) = p(:,1,1:nx)
+             p(1:nx,0,:) = p(1:nx,1,:) ! ijk
           elseif(ih == 2) then
-             p(:,-1,1:nx) = two * p(:,1,1:nx) - p(:,2,1:nx)
+             p(1:nx,-1,:) = two * p(1:nx,1,:) - p(1:nx,2,:) ! ijk
           else
              stop
           endif
@@ -973,12 +967,11 @@ contains
     elseif ((lbc).and.(trim(cuv)=='u')) then
 !       p(:,:,nx+1) = zero !- assume that nh = 1
     else  !!Homogenous Neumann
-!!$       p(:,1:ny,nx+1:nx+nh) = p(:,1:ny,nx:nx-nh+1:-1)
        do ih = 1, nh
           if (ih == 1) then
-             p(:,1:ny,nx+1) = p(:,1:ny,nx)
+             p(nx+1,1:ny,:) = p(nx,1:ny,:) ! ijk
           elseif(ih == 2) then
-             p(:,1:ny,nx+2) = two * p(:,1:ny,nx) - p(:,1:ny,nx-1)
+             p(nx+2,1:ny,:) = two * p(nx,1:ny,:) - p(nx-1,1:ny,:) ! ijk
           else
              stop
           endif
@@ -993,12 +986,11 @@ contains
     elseif ((lbc).and.(trim(cuv)=='v')) then 
 !       p(:,ny+1,:) = zero !- assume that nh = 1
     else  !!Homogenous Neumann  
-!!$       p(:,ny+1:ny+nh,1:nx) = p(:,ny:ny-nh+1:-1,1:nx)
        do ih = 1, nh
           if (ih == 1) then
-             p(:,ny+1,1:nx) = p(:,ny,1:nx)
+             p(1:nx,ny+1,:) = p(1:nx,ny,:) ! ijk
           elseif(ih == 2) then
-             p(:,ny+2,1:nx) = two * p(:,ny,1:nx) - p(:,ny-1,1:nx)
+             p(1:nx,ny+2,:) = two * p(1:nx,ny,:) - p(1:nx,ny-1,:) ! ijk
           else
              stop
           endif
@@ -1013,12 +1005,11 @@ contains
     elseif ((lbc).and.(trim(cuv)=='u')) then
 !       p(:,:,1) = zero !- assume that nh = 1
     else   !!Homogenous Neumann
-!!$       p(:,1:ny,1-nh:0) = p(:,1:ny,nh:1:-1)
        do ih = 1, nh
           if (ih == 1) then
-             p(:,1:ny,0) = p(:,1:ny,1)
+             p(0,1:ny,:) = p(1,1:ny,:) ! ijk
           elseif(ih == 2) then
-             p(:,1:ny,-1) = two * p(:,1:ny,1) - p(:,1:ny,2)
+             p(-1,1:ny,:) = two * p(1,1:ny,:) - p(2,1:ny,:) ! ijk
           else
              stop
           endif
@@ -1039,7 +1030,7 @@ contains
     elseif (west.ne.MPI_PROC_NULL) then
        flag_sw_w = .true.
     else !!Homogenous Neumann  
-       p(:,1-nh:0,1-nh:0) = p(:,nh:1:-1,nh:1:-1)
+       p(1-nh:0,1-nh:0,:) = p(nh:1:-1,nh:1:-1,:) ! ijk
     endif
 
     flag_se_s = .false.
@@ -1056,7 +1047,7 @@ contains
     elseif (east.ne.MPI_PROC_NULL) then
        flag_se_e = .true.
     else!!Homogenous Neumann  
-       p(:,1-nh:0,nx+1:nx+nh) = p(:,nh:1:-1,nx:nx-nh+1:-1)
+       p(nx+1:nx+nh,1-nh:0,:) = p(nx:nx-nh+1:-1,nh:1:-1,:) ! ijk
     endif
 
     flag_ne_n = .false.
@@ -1074,7 +1065,7 @@ contains
     elseif (east.ne.MPI_PROC_NULL) then
        flag_ne_e = .true.
     else!!Homogenous Neumann  
-       p(:,ny+1:ny+nh,nx+1:nx+nh) = p(:,ny:ny-nh+1:-1,nx:nx-nh+1:-1)
+       p(nx+1:nx+nh,ny+1:ny+nh,:) = p(nx:nx-nh+1:-1,ny:ny-nh+1:-1,:) ! ijk
     endif
 
     flag_nw_n = .false.
@@ -1092,7 +1083,7 @@ contains
     elseif (west.ne.MPI_PROC_NULL) then
        flag_nw_w = .true.
     else !!Homogenous Neumann  
-       p(:,ny+1:ny+nh,1-nh:0) = p(:,ny:ny-nh+1:-1,nh:1:-1)
+       p(1-nh:0,ny+1:ny+nh,:) = p(nh:1:-1,ny:ny-nh+1:-1,:) ! ijk
     endif
 
     !--------------------!
@@ -1100,7 +1091,7 @@ contains
     !--------------------!
 
     if (south.ne.MPI_PROC_NULL) then
-       sendS = p(:,1:nh,1:nx)  
+       sendS = p(1:nx,1:nh,:)   ! ijk
        call MPI_ISend(                              &
             sendS,nz*nx*nh,MPI_DOUBLE_PRECISION,south, &
             sntag,MPI_COMM_WORLD,req(9),ierr)
@@ -1108,7 +1099,7 @@ contains
     endif
 
     if (east.ne.MPI_PROC_NULL) then
-       sendE = p(:,1:ny,nx-nh+1:nx) 
+       sendE = p(nx-nh+1:nx,1:ny,:)  ! ijk
        call MPI_ISend(                             &
             sendE,nz*ny*nh,MPI_DOUBLE_PRECISION,east, &
             ewtag,MPI_COMM_WORLD,req(10),ierr)
@@ -1116,7 +1107,7 @@ contains
     endif
 
     if (north.ne.MPI_PROC_NULL) then
-       sendN = p(:,ny-nh+1:ny,1:nx)
+       sendN = p(1:nx,ny-nh+1:ny,:) ! ijk
        call MPI_ISend(                              &
             sendN,nz*nx*nh,MPI_DOUBLE_PRECISION,north, &
             nstag,MPI_COMM_WORLD,req(11),ierr)
@@ -1124,7 +1115,7 @@ contains
     endif
 
     if (west.ne.MPI_PROC_NULL) then
-       sendW = p(:,1:ny,1:nh)  
+       sendW = p(1:nh,1:ny,:) ! ijk 
        call MPI_ISend(                             &
             sendW,nz*ny*nh,MPI_DOUBLE_PRECISION,west, &
             wetag,MPI_COMM_WORLD,req(12),ierr)
@@ -1132,7 +1123,7 @@ contains
     endif
 
     if (southwest.ne.MPI_PROC_NULL) then
-       sendSW = p(:,1:nh,1:nh)  
+       sendSW = p(1:nh,1:nh,:)  ! ijk
        call MPI_ISend(                                &
             sendSW,nz*nh*nh,MPI_DOUBLE_PRECISION,southwest, &
             swnetag,MPI_COMM_WORLD,req(13),ierr)
@@ -1140,7 +1131,7 @@ contains
     endif
 
     if (southeast.ne.MPI_PROC_NULL) then
-       sendSE = p(:,1:nh,nx-nh+1:nx)  
+       sendSE = p(nx-nh+1:nx,1:nh,:) ! ijk 
        call MPI_ISend(                                &
             sendSE,nz*nh*nh,MPI_DOUBLE_PRECISION,southeast, &
             senwtag,MPI_COMM_WORLD,req(14),ierr)
@@ -1148,7 +1139,7 @@ contains
     endif
 
     if (northeast.ne.MPI_PROC_NULL) then
-       sendNE = p(:,ny-nh+1:ny,nx-nh+1:nx) 
+       sendNE = p(nx-nh+1:nx,ny-nh+1:ny,:) ! ijk
        call MPI_ISend(                                &
             sendNE,nz*nh*nh,MPI_DOUBLE_PRECISION,northeast, &
             neswtag,MPI_COMM_WORLD,req(15),ierr)
@@ -1156,7 +1147,7 @@ contains
     endif
 
     if (northwest.ne.MPI_PROC_NULL) then
-       sendNW = p(:,ny-nh+1:ny,1:nh)
+       sendNW = p(1:nh,ny-nh+1:ny,:) ! ijk
        call MPI_ISend(                                &
             sendNW,nz*nh*nh,MPI_DOUBLE_PRECISION,northwest, &
             nwsetag,MPI_COMM_WORLD,req(16),ierr)
@@ -1189,55 +1180,55 @@ contains
 
        ! be unpacked only once.
        if (indx.eq.1) then ! south
-          p(:,1-nh:0,1:nx)  = recvS
+          p(1:nx,1-nh:0,:)  = recvS ! ijk
 
        elseif (indx.eq.2) then ! east
-          p(:,1:ny,nx+1:nx+nh) = recvE
+          p(nx+1:nx+nh,1:ny,:) = recvE ! ijk
 
        elseif (indx.eq.3) then ! north
-          p(:,ny+1:ny+nh,1:nx)  = recvN 
+          p(1:nx,ny+1:ny+nh,:)  = recvN ! ijk
 
        elseif (indx.eq.4) then ! west
-          p(:,1:ny,1-nh:0) = recvW
+          p(1-nh:0,1:ny,:) = recvW ! ijk
 
        elseif (indx.eq.5) then ! southwest
-          p(:,1-nh:0,1-nh:0) = recvSW
+          p(1-nh:0,1-nh:0,:) = recvSW ! ijk
 
        elseif (indx.eq.6) then ! southeast
-          p(:,1-nh:0,nx+1:nx+nh) = recvSE
+          p(nx+1:nx+nh,1-nh:0,:) = recvSE ! ijk
 
        elseif (indx.eq.7) then ! northeast
-          p(:,ny+1:ny+nh,nx+1:nx+nh) = recvNE
+          p(nx+1:nx+nh,ny+1:ny+nh,:) = recvNE ! ijk
 
        elseif (indx.eq.8) then ! northwest
-          p(:,ny+1:ny+nh,1-nh:0) = recvNW
+          p(1-nh:0,ny+1:ny+nh,:) = recvNW ! ijk
        endif
 
     enddo      !<-- while
 
     !- corners on physical boundarie if a flag is true-!
     if (flag_sw_s) then
-       p(:,1-nh:0,1-nh:0) = p(:,1-nh:0,nh:1:-1)
+       p(1-nh:0,1-nh:0,:) = p(nh:1:-1,1-nh:0,:) ! ijk
     elseif (flag_sw_w) then
-       p(:,1-nh:0,1-nh:0) = p(:,nh:1:-1,1-nh:0)
+       p(1-nh:0,1-nh:0,:) = p(1-nh:0,nh:1:-1,:) ! ijk
     endif
 
     if (flag_se_s) then
-       p(:,1-nh:0,nx+1:nx+nh) = p(:,1-nh:0,nx:nx-nh+1:-1)
+       p(nx+1:nx+nh,1-nh:0,:) = p(nx:nx-nh+1:-1,1-nh:0,:) ! ijk
     elseif (flag_se_e) then
-       p(:,1-nh:0,nx+1:nx+nh) = p(:,nh:1:-1,nx+1:nx+nh)
+       p(nx+1:nx+nh,1-nh:0,:) = p(nx+1:nx+nh,nh:1:-1,:) ! ijk
     endif
 
     if (flag_ne_n) then
-       p(:,ny+1:ny+nh,nx+1:nx+nh) = p(:,ny+1:ny+nh,nx:nx-nh+1:-1)
+       p(nx+1:nx+nh,ny+1:ny+nh,:) = p(nx:nx-nh+1:-1,ny+1:ny+nh,:) ! ijk
     elseif (flag_ne_e) then
-       p(:,ny+1:ny+nh,nx+1:nx+nh) = p(:,ny:ny-nh+1:-1,nx+1:nx+nh)
+       p(nx+1:nx+nh,ny+1:ny+nh,:) = p(nx+1:nx+nh,ny:ny-nh+1:-1,:) ! ijk
     endif
 
     if (flag_nw_n) then
-       p(:,ny+1:ny+nh,1-nh:0) = p(:,ny+1:ny+nh,nh:1:-1)
+       p(1-nh:0,ny+1:ny+nh,:) = p(nh:1:-1,ny+1:ny+nh,:) ! ijk
     elseif (flag_nw_w) then
-       p(:,ny+1:ny+nh,1-nh:0) = p(:,ny:ny-nh+1:-1,1-nh:0)
+       p(1-nh:0,ny+1:ny+nh,:) = p(1-nh:0,ny:ny-nh+1:-1,:) ! ijk
     endif
 
   end subroutine fill_halo_3D
@@ -1331,8 +1322,6 @@ contains
             recvS,nd*nz*nx,MPI_DOUBLE_PRECISION,south, &
             nstag,MPI_COMM_WORLD,req(1),ierr)
        comm(1)=1
-    else !!Homogenous Neumann  
-!       cA(:,:,0,1:nx) = zero 
     endif
 
     if (east.ne.MPI_PROC_NULL) then
@@ -1340,8 +1329,6 @@ contains
             recvE,nd*nz*ny,MPI_DOUBLE_PRECISION,east, &
             wetag,MPI_COMM_WORLD,req(2),ierr)
        comm(2)=2
-    else !!Homogenous Neumann
-!       cA(:,:,1:ny,nx+1) = zero
     endif
 
     if (north.ne.MPI_PROC_NULL) then
@@ -1349,8 +1336,6 @@ contains
             recvN,nd*nz*nx,MPI_DOUBLE_PRECISION,north, &
             sntag,MPI_COMM_WORLD,req(3),ierr)
        comm(3)=3
-    else !!Homogenous Neumann  
-!       cA(:,:,ny+1,1:nx) = zero
     endif
 
     if (west.ne.MPI_PROC_NULL) then
@@ -1358,8 +1343,6 @@ contains
             recvW,nd*nz*ny,MPI_DOUBLE_PRECISION,west, &
             ewtag,MPI_COMM_WORLD,req(4),ierr)
        comm(4)=4
-    else !!Homogenous Neumann
-!       cA(:,:,1:ny,0) = zero
     endif
 
     if (southwest.ne.MPI_PROC_NULL) then
@@ -1367,8 +1350,6 @@ contains
             recvSW,nd*nz,MPI_DOUBLE_PRECISION,southwest, &
             neswtag,MPI_COMM_WORLD,req(5),ierr)
        comm(5)=5
-    else !!Homogenous Neumann  
-!       cA(:,:,0,0) = zero
     endif
 
     if (southeast.ne.MPI_PROC_NULL) then
@@ -1376,8 +1357,6 @@ contains
             recvSE,nd*nz,MPI_DOUBLE_PRECISION,southeast, &
             nwsetag,MPI_COMM_WORLD,req(6),ierr)
        comm(6)=6
-    else !!Homogenous Neumann  
-!       cA(:,:,0,nx+1) = zero
     endif
 
     if (northeast.ne.MPI_PROC_NULL) then
@@ -1385,8 +1364,6 @@ contains
             recvNE,nd*nz,MPI_DOUBLE_PRECISION,northeast, &
             swnetag,MPI_COMM_WORLD,req(7),ierr)
        comm(7)=7
-    else !!Homogenous Neumann  
-!       cA(:,:,ny+1,nx+1) = zero
     endif
 
     if (northwest.ne.MPI_PROC_NULL) then
@@ -1394,8 +1371,6 @@ contains
             recvNW,nd*nz,MPI_DOUBLE_PRECISION,northwest, &
             senwtag,MPI_COMM_WORLD,req(8),ierr)
        comm(8)=8
-    else !!Homogenous Neumann  
-!       cA(:,:,ny+1,0) = zero
     endif
 
     !--------------------!
@@ -1403,7 +1378,7 @@ contains
     !--------------------!
 
     if (south.ne.MPI_PROC_NULL) then
-       sendS = cA(:,:,1,1:nx)  
+       sendS = cA(:,1:nx,1,:)  ! ijk
        call MPI_ISend(                                 &
             sendS,nd*nz*nx,MPI_DOUBLE_PRECISION,south, &
             sntag,MPI_COMM_WORLD,req(9),ierr)
@@ -1411,7 +1386,7 @@ contains
     endif
 
     if (east.ne.MPI_PROC_NULL) then
-       sendE = cA(:,:,1:ny,nx) 
+       sendE = cA(:,nx,1:ny,:) ! ijk
        call MPI_ISend(                                &
             sendE,nd*nz*ny,MPI_DOUBLE_PRECISION,east, &
             ewtag,MPI_COMM_WORLD,req(10),ierr)
@@ -1419,7 +1394,7 @@ contains
     endif
 
     if (north.ne.MPI_PROC_NULL) then
-       sendN = cA(:,:,ny,1:nx)
+       sendN = cA(:,1:nx,ny,:) ! ijk
        call MPI_ISend(                                 &
             sendN,nd*nz*nx,MPI_DOUBLE_PRECISION,north, &
             nstag,MPI_COMM_WORLD,req(11),ierr)
@@ -1435,7 +1410,7 @@ contains
     endif
 
     if (southwest.ne.MPI_PROC_NULL) then
-       sendSW = cA(:,:,1,1)  
+       sendSW = cA(:,1,1,:)  ! ijk
        call MPI_ISend(                                   &
             sendSW,nd*nz,MPI_DOUBLE_PRECISION,southwest, &
             swnetag,MPI_COMM_WORLD,req(13),ierr)
@@ -1443,7 +1418,7 @@ contains
     endif
 
     if (southeast.ne.MPI_PROC_NULL) then
-       sendSE = cA(:,:,1,nx)  
+       sendSE = cA(:,nx,1,1)  ! ijk
        call MPI_ISend(                                   &
             sendSE,nd*nz,MPI_DOUBLE_PRECISION,southeast, &
             senwtag,MPI_COMM_WORLD,req(14),ierr)
@@ -1451,7 +1426,7 @@ contains
     endif
 
     if (northeast.ne.MPI_PROC_NULL) then
-       sendNE = cA(:,:,ny,nx) 
+       sendNE = cA(:,nx,ny,:) ! ijk
        call MPI_ISend(                                   &
             sendNE,nd*nz,MPI_DOUBLE_PRECISION,northeast, &
             neswtag,MPI_COMM_WORLD,req(15),ierr)
@@ -1459,7 +1434,7 @@ contains
     endif
 
     if (northwest.ne.MPI_PROC_NULL) then
-       sendNW = cA(:,:,ny,1)
+       sendNW = cA(:,1,ny,:) ! ijk
        call MPI_ISend(                                   &
             sendNW,nd*nz,MPI_DOUBLE_PRECISION,northwest, &
             nwsetag,MPI_COMM_WORLD,req(16),ierr)
@@ -1492,28 +1467,28 @@ contains
 
        ! be unpacked only once.
        if (indx.eq.1) then ! south
-          cA(:,:,0,1:nx)  = recvS
+          cA(:,1:nx,0,:)  = recvS ! ijk
 
        elseif (indx.eq.2) then ! east
-          cA(:,:,1:ny,nx+1) = recvE
+          cA(:,nx+1,1:ny,:) = recvE ! ijk
 
        elseif (indx.eq.3) then ! north
-          cA(:,:,ny+1,1:nx)  = recvN 
+          cA(:,1:nx,ny+1,:)  = recvN  ! ijk
 
        elseif (indx.eq.4) then ! west
-          cA(:,:,1:ny,0) = recvW
+          cA(:,0,1:ny,:) = recvW ! ijk
 
        elseif (indx.eq.5) then ! southwest
-          cA(:,:,0,0) = recvSW
+          cA(:,0,0,:) = recvSW ! ijk
 
        elseif (indx.eq.6) then ! southeast
-          cA(:,:,0,nx+1) = recvSE
+          cA(:,nx+1,0,:) = recvSE ! ijk
 
        elseif (indx.eq.7) then ! northeast
-          cA(:,:,ny+1,nx+1) = recvNE
+          cA(:,nx+1,ny+1,:) = recvNE ! ijk
 
        elseif (indx.eq.8) then ! northwest
-          cA(:,:,ny+1,0) = recvNW
+          cA(:,0,ny+1,:) = recvNW ! ijk
        endif
 
     enddo      !<-- while  
@@ -1543,11 +1518,11 @@ contains
     if (trim(gt) == 'u') then
 
        if (east == MPI_PROC_NULL) then
-          a3D(:,:,nx:nx+1) = zero
+          a3D(nx:nx+1,:,:) = zero ! ijk
        endif
 
        if (west == MPI_PROC_NULL) then
-          a3D(:,:,0:1) = zero
+          a3D(0:1,:,:) = zero ! ijk
        endif
 
     elseif (trim(gt) == 'v') then
@@ -1586,11 +1561,11 @@ contains
     if (trim(gt) == 'u') then
 
        if (east == MPI_PROC_NULL) then
-          a3D(:,:,nx+1) = zero
+          a3D(nx+1,:,:) = zero ! ijk
        endif
 
        if (west == MPI_PROC_NULL) then
-          a3D(:,:,1) = zero
+          a3D(1,:,:) = zero ! ijk
        endif
 
     elseif (trim(gt) == 'v') then
@@ -1608,24 +1583,6 @@ contains
     endif
 
   end subroutine set_rurvbc2zero_3D
-
-  !----------------------------------------
-  subroutine global_max(maxloc)
-    ! return the global max: maxglo
-    ! using the local max on each subdomain
-    real(kind=rp),intent(inout) :: maxloc
-
-    real(kind=rp)    :: maxglo
-    integer(kind=ip) :: ierr
-
-    ! note: the global comm using MPI_COMM_WORLD is over-kill for levels 
-    ! where subdomains are gathered
-    ! this is not optimal, but not wrong
-    call MPI_ALLREDUCE(maxloc,maxglo,1,MPI_DOUBLE_PRECISION,MPI_max,MPI_COMM_WORLD,ierr)   
-
-    maxloc = maxglo
-
-  end subroutine global_max
 
   !----------------------------------------
   subroutine global_sum(lev,sumloc,sumglo)
