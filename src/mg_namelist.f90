@@ -46,8 +46,8 @@ module mg_namelist
        interp_type   , &
        restrict_type , &
        netcdf_output , &
-       check_output , &
-       aggressive   
+       check_output  , &
+       aggressive         ! obsolete !!!!!
 
 contains
 
@@ -121,7 +121,7 @@ contains
           write(*,*)'  - relax_method  : ', trim(relax_method)
           write(*,*)'  - interp_type   : ', trim(interp_type)
           write(*,*)'  - restrict_type : ', trim(restrict_type)
-          write(*,*)'  - aggressive    : ', aggressive
+!          write(*,*)'  - aggressive    : ', aggressive ! obsolete !!!!
           write(*,*)'  - netcdf_output : ', netcdf_output
           write(*,*)'  - check_output : ', check_output
           write(*,*)'  '

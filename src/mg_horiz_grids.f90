@@ -36,11 +36,11 @@ contains
 
        if (lev == 1) then ! dx,dy from croco
 
-          grid(lev)%dx(0:ny+1,0:nx+1) = dx
-          grid(lev)%dy(0:ny+1,0:nx+1) = dy
+          grid(lev)%dx(0:nx+1,0:ny+1) = dx ! ijk
+          grid(lev)%dy(0:nx+1,0:ny+1) = dy ! ijk
 
-          grid(lev)%dxu(0:ny+1,1:nx+1) = hlf*(dx(0:ny+1,0:nx)+dx(0:ny+1,1:nx+1))
-          grid(lev)%dyv(1:ny+1,0:nx+1) = hlf*(dy(0:ny,0:nx+1)+dy(1:ny+1,0:nx+1))
+          grid(lev)%dxu(1:nx+1,0:ny+1) = hlf*(dx(0:nx  ,0:ny+1)+dx(1:nx+1,0:ny+1)) ! ijk
+          grid(lev)%dyv(0:nx+1,1:ny+1) = hlf*(dy(0:nx+1,0:ny  )+dy(0:nx+1,1:ny+1)) ! ijk
 
        else               ! coarsen dx,dy 
           ! (needed when directly discretizing on coarser grids)
@@ -56,10 +56,10 @@ contains
           if (grid(lev)%gather == 1) then
              nxc= nx/grid(lev)%ngx
              nyc= ny/grid(lev)%ngy
-             allocate(dxc(0:nyc+1,0:nxc+1))
-             allocate(dyc(0:nyc+1,0:nxc+1))
-             allocate(dxuc(0:nyc+1,0:nxc+1))
-             allocate(dyvc(0:nyc+1,0:nxc+1))
+             allocate( dxc(0:nxc+1,0:nyc+1)) ! ijk
+             allocate( dyc(0:nxc+1,0:nyc+1)) ! ijk
+             allocate(dxuc(0:nxc+1,0:nyc+1)) ! ijk
+             allocate(dyvc(0:nxc+1,0:nyc+1)) ! ijk
           else
              nxc = nx
              nyc = ny
@@ -69,29 +69,29 @@ contains
              dyvc => grid(lev)%dyv
           endif
 
-          dxc(1:nyc,1:nxc) = hlf      * ( & ! only interior points
-               dxf(1:nyf  :2,1:nxf  :2) + &
-               dxf(2:nyf+1:2,1:nxf  :2) + &
-               dxf(1:nyf  :2,2:nxf+1:2) + &
-               dxf(2:nyf+1:2,2:nxf+1:2) )
+          dxc(1:nxc,1:nyc) = hlf      * ( & ! only interior points ! ijk
+               dxf(1:nxf  :2,1:nyf  :2) + & ! ijk
+               dxf(1:nxf  :2,2:nyf+1:2) + & ! ijk
+               dxf(2:nxf+1:2,1:nyf  :2) + & ! ijk
+               dxf(2:nxf+1:2,2:nyf+1:2) )   ! ijk
 
-          dyc(1:nyc,1:nxc) = hlf      * ( &
-               dyf(1:nyf  :2,1:nxf  :2) + &
-               dyf(2:nyf+1:2,1:nxf  :2) + &
-               dyf(1:nyf  :2,2:nxf+1:2) + &
-               dyf(2:nyf+1:2,2:nxf+1:2) )
+          dyc(1:nxc,1:nyc) = hlf      * ( & ! ijk
+               dyf(1:nxf  :2,1:nyf  :2) + & ! ijk
+               dyf(1:nxf  :2,2:nyf+1:2) + & ! ijk
+               dyf(2:nxf+1:2,1:nyf  :2) + & ! ijk
+               dyf(2:nxf+1:2,2:nyf+1:2) )   ! ijk
 
-          dxuc(1:nyc,1:nxc) = hlf      * ( & ! only interior points
-               dxuf(1:nyf  :2,1:nxf  :2) + &
-               dxuf(2:nyf+1:2,1:nxf  :2) + &
-               dxuf(1:nyf  :2,2:nxf+1:2) + &
-               dxuf(2:nyf+1:2,2:nxf+1:2) )
+          dxuc(1:nxc,1:nyc) = hlf      * ( & ! only interior points ! ijk
+               dxuf(1:nxf  :2,1:nyf  :2) + & ! ijk
+               dxuf(1:nxf  :2,2:nyf+1:2) + & ! ijk
+               dxuf(2:nxf+1:2,1:nyf  :2) + & ! ijk
+               dxuf(2:nxf+1:2,2:nyf+1:2) )   ! ijk
 
-          dyvc(1:nyc,1:nxc) = hlf      * ( &
-               dyvf(1:nyf  :2,1:nxf  :2) + &
-               dyvf(2:nyf+1:2,1:nxf  :2) + &
-               dyvf(1:nyf  :2,2:nxf+1:2) + &
-               dyvf(2:nyf+1:2,2:nxf+1:2) )
+          dyvc(1:nxc,1:nyc) = hlf      * ( & ! ijk
+               dyvf(1:nxf  :2,1:nyf  :2) + & ! ijk
+               dyvf(1:nxf  :2,2:nyf+1:2) + & ! ijk
+               dyvf(2:nxf+1:2,1:nyf  :2) + & ! ijk
+               dyvf(2:nxf+1:2,2:nyf+1:2) )   ! ijk
 
           if (grid(lev)%gather == 1) then
              call gather(lev,dxc,grid(lev)%dx)
