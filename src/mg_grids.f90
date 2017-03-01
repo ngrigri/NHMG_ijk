@@ -123,7 +123,6 @@ module mg_grids
 
   end type mpi_buffers
 
-
   !-
   !- GRID is an vector of grid_type (derived type) which stores the informations of
   !- all the different grid levels of the multigrid solver.
@@ -191,60 +190,60 @@ contains
     do lev=1,nlevs ! set_horiz_grids
        nx = grid(lev)%nx
        ny = grid(lev)%ny
-       allocate(grid(lev)%dx(0:ny+1,0:nx+1))
-       allocate(grid(lev)%dy(0:ny+1,0:nx+1))
-       allocate(grid(lev)%dxu(0:ny+1,0:nx+1))
-       allocate(grid(lev)%dyv(0:ny+1,0:nx+1))
+       allocate(grid(lev)%dx(0:nx+1,0:ny+1)) ! ijk
+       allocate(grid(lev)%dy(0:nx+1,0:ny+1)) ! ijk
+       allocate(grid(lev)%dxu(0:nx+1,0:ny+1)) ! ijk
+       allocate(grid(lev)%dyv(0:nx+1,0:ny+1)) ! ijk
     enddo
 
     do lev=1,nlevs ! set_vert_grids
        nx = grid(lev)%nx
        ny = grid(lev)%ny
        nz = grid(lev)%nz
-       allocate(grid(lev)%zr(nz,-1:ny+2,-1:nx+2)) ! 2 extra points
-       allocate(grid(lev)%dz(nz,-1:ny+2,-1:nx+2)) ! 2 extra points
+       allocate(grid(lev)%zr(-1:nx+2,-1:ny+2,nz)) ! 2 extra points  ! ijk
+       allocate(grid(lev)%dz(-1:nx+2,-1:ny+2,nz)) ! 2 extra points  ! ijk
     enddo
 
     do lev=1,nlevs ! set_vert_grids
        nx = grid(lev)%nx
        ny = grid(lev)%ny
        nz = grid(lev)%nz
-       allocate(grid(lev)%dzw( nz+1,0:ny+1,0:nx+1)) ! at w point
-       allocate(grid(lev)%Arx( nz  ,0:ny+1,1:nx+1)) ! at u point
-       allocate(grid(lev)%Ary( nz  ,1:ny+1,0:nx+1)) ! at v point
-       allocate(grid(lev)%Arz(      0:ny+1,0:nx+1)) ! at w point
-       allocate(grid(lev)%beta(     0:ny+1,0:nx+1)) !
-       allocate(grid(lev)%gamu(     0:ny+1,0:nx+1)) !
-       allocate(grid(lev)%gamv(     0:ny+1,0:nx+1)) !
-       allocate(grid(lev)%zxdy(nz  ,0:ny+1,0:nx+1)) ! at rho point
-       allocate(grid(lev)%zydx(nz  ,0:ny+1,0:nx+1)) ! at rho point
-       allocate(grid(lev)%alpha(nz ,0:ny+1,0:nx+1)) ! at rho point
+       allocate(grid(lev)%dzw  (0:nx+1,0:ny+1,nz+1)) ! at w point ! ijk
+       allocate(grid(lev)%Arx  (1:nx+1,0:ny+1,nz  )) ! at u point ! ijk
+       allocate(grid(lev)%Ary  (0:nx+1,1:ny+1,nz  )) ! at v point ! ijk
+       allocate(grid(lev)%Arz  (0:nx+1,0:ny+1))      ! at w point ! ijk
+       allocate(grid(lev)%beta (0:nx+1,0:ny+1))      !            ! ijk
+       allocate(grid(lev)%gamu (0:nx+1,0:ny+1))      !            ! ijk
+       allocate(grid(lev)%gamv (0:nx+1,0:ny+1))      !            ! ijk
+       allocate(grid(lev)%zxdy (0:nx+1,0:ny+1,nz  )) ! at r point ! ijk
+       allocate(grid(lev)%zydx (0:nx+1,0:ny+1,nz  )) ! at r point ! ijk
+       allocate(grid(lev)%alpha(0:nx+1,0:ny+1,nz  )) ! at r point ! ijk
     enddo
 
     lev = 1 ! Some intermediate arrays for define matrices and compute rhs
     nx = grid(lev)%nx
     ny = grid(lev)%ny
     nz = grid(lev)%nz
-    allocate(grid(lev)%dummy3Dnz( nz  ,0:ny+1,0:nx+1))
-    allocate(grid(lev)%dummy3Dnzp(nz+1,0:ny+1,0:nx+1))
+    allocate(grid(lev)%dummy3Dnz  0:nx+1,0:ny+1,nz  )) ! ijk
+    allocate(grid(lev)%dummy3Dnzp(0:nx+1,0:ny+1,nz+1)) ! ijk
 
-    allocate(grid(lev)%u(1:nz  ,0:ny+1,0:nx+1))
-    allocate(grid(lev)%v(1:nz  ,0:ny+1,0:nx+1))
-    allocate(grid(lev)%w(1:nz+1,0:ny+1,0:nx+1))
-    allocate(grid(lev)%du(1:nz  ,0:ny+1,0:nx+1))
-    allocate(grid(lev)%dv(1:nz  ,0:ny+1,0:nx+1))
-    allocate(grid(lev)%dw(1:nz+1,0:ny+1,0:nx+1))
+    allocate(grid(lev)%u (0:nx+1,0:ny+1,1:nz  )) ! ijk
+    allocate(grid(lev)%v (0:nx+1,0:ny+1,1:nz  )) ! ijk
+    allocate(grid(lev)%w (0:nx+1,0:ny+1,1:nz+1)) ! ijk
+    allocate(grid(lev)%du(0:nx+1,0:ny+1,1:nz  )) ! ijk
+    allocate(grid(lev)%dv(0:nx+1,0:ny+1,1:nz  )) ! ijk
+    allocate(grid(lev)%dw(0:nx+1,0:ny+1,1:nz+1)) ! ijk
 
-    allocate(grid(lev)%rufrcb(0:ny+1,0:nx+1))
-    allocate(grid(lev)%rvfrcb(0:ny+1,0:nx+1))
+    allocate(grid(lev)%rufrcb(0:nx+1,0:ny+1)) ! ijk
+    allocate(grid(lev)%rvfrcb(0:nx+1,0:ny+1)) ! ijk
 
     do lev=1,nlevs ! 
        nx = grid(lev)%nx
        ny = grid(lev)%ny
        nz = grid(lev)%nz
-       allocate(grid(lev)%p(nz,0:ny+1,0:nx+1))
-       allocate(grid(lev)%b(nz,0:ny+1,0:nx+1))
-       allocate(grid(lev)%r(nz,0:ny+1,0:nx+1))
+       allocate(grid(lev)%p(0:nx+1,0:ny+1,nz)) ! ijk
+       allocate(grid(lev)%b(0:nx+1,0:ny+1,nz)) ! ijk
+       allocate(grid(lev)%r(0:nx+1,0:ny+1,nz)) ! ijk
     enddo
 
     do lev=1,nlevs !
@@ -256,25 +255,25 @@ contains
        else
           nd = 8
        endif
-       allocate(grid(lev)%cA(nd,nz,0:ny+1,0:nx+1))
+       allocate(grid(lev)%cA(nd,0:nx+1,0:ny+1,nz)) ! ijk
     enddo
 
     ! MPI exhanges for 2D arrays
     !-Halo 1-!
     do lev=1,nlevs
        nx = grid(lev)%nx
-       allocate(gbuffers(lev)%sendS2D1(1,nx))
-       allocate(gbuffers(lev)%recvS2D1(1,nx))
-       allocate(gbuffers(lev)%sendN2D1(1,nx))
-       allocate(gbuffers(lev)%recvN2D1(1,nx))
+       allocate(gbuffers(lev)%sendS2D1(nx,1)) ! ijk
+       allocate(gbuffers(lev)%recvS2D1(nx,1)) ! ijk
+       allocate(gbuffers(lev)%sendN2D1(nx,1)) ! ijk
+       allocate(gbuffers(lev)%recvN2D1(nx,1)) ! ijk
     enddo
 
     do lev=1,nlevs
        ny = grid(lev)%ny
-       allocate(gbuffers(lev)%sendE2D1(ny,1))
-       allocate(gbuffers(lev)%recvE2D1(ny,1))
-       allocate(gbuffers(lev)%sendW2D1(ny,1))
-       allocate(gbuffers(lev)%recvW2D1(ny,1))
+       allocate(gbuffers(lev)%sendE2D1(1,ny)) ! ijk
+       allocate(gbuffers(lev)%recvE2D1(1,ny)) ! ijk
+       allocate(gbuffers(lev)%sendW2D1(1,ny)) ! ijk
+       allocate(gbuffers(lev)%recvW2D1(1,ny)) ! ijk
     enddo
 
     do lev=1,nlevs
@@ -295,138 +294,138 @@ contains
     do lev=1,nlevs
        nx = grid(lev)%nx
        nz = grid(lev)%nz
-       allocate(gbuffers(lev)%sendS(nz,1,nx))
-       allocate(gbuffers(lev)%recvS(nz,1,nx))
-       allocate(gbuffers(lev)%sendN(nz,1,nx))
-       allocate(gbuffers(lev)%recvN(nz,1,nx))
+       allocate(gbuffers(lev)%sendS(nx,1,nz)) ! ijk
+       allocate(gbuffers(lev)%recvS(nx,1,nz)) ! ijk
+       allocate(gbuffers(lev)%sendN(nx,1,nz)) ! ijk
+       allocate(gbuffers(lev)%recvN(nx,1,nz)) ! ijk
     enddo
 
     do lev=1,nlevs
        ny = grid(lev)%ny
        nz = grid(lev)%nz
-       allocate(gbuffers(lev)%sendE(nz,ny,1))
-       allocate(gbuffers(lev)%recvE(nz,ny,1))
-       allocate(gbuffers(lev)%sendW(nz,ny,1))
-       allocate(gbuffers(lev)%recvW(nz,ny,1))
+       allocate(gbuffers(lev)%sendE(1,ny,nz)) ! ijk
+       allocate(gbuffers(lev)%recvE(1,ny,nz)) ! ijk
+       allocate(gbuffers(lev)%sendW(1,ny,nz)) ! ijk
+       allocate(gbuffers(lev)%recvW(1,ny,nz)) ! ijk
     enddo
 
     do lev=1,nlevs
        nz = grid(lev)%nz
-       allocate(gbuffers(lev)%sendSW(nz,1,1))
-       allocate(gbuffers(lev)%sendSE(nz,1,1))
-       allocate(gbuffers(lev)%sendNW(nz,1,1))
-       allocate(gbuffers(lev)%sendNE(nz,1,1))
+       allocate(gbuffers(lev)%sendSW(1,1,nz)) ! ijk
+       allocate(gbuffers(lev)%sendSE(1,1,nz)) ! ijk
+       allocate(gbuffers(lev)%sendNW(1,1,nz)) ! ijk
+       allocate(gbuffers(lev)%sendNE(1,1,nz)) ! ijk
     enddo
 
     do lev=1,nlevs
        nz = grid(lev)%nz
-       allocate(gbuffers(lev)%recvSW(nz,1,1))
-       allocate(gbuffers(lev)%recvSE(nz,1,1))
-       allocate(gbuffers(lev)%recvNW(nz,1,1))
-       allocate(gbuffers(lev)%recvNE(nz,1,1))
+       allocate(gbuffers(lev)%recvSW(1,1,nz)) ! ijk
+       allocate(gbuffers(lev)%recvSE(1,1,nz)) ! ijk
+       allocate(gbuffers(lev)%recvNW(1,1,nz)) ! ijk
+       allocate(gbuffers(lev)%recvNE(1,1,nz)) ! ijk
     enddo
 
     do lev=1,nlevs
        nx = grid(lev)%nx
        nz = grid(lev)%nz
-       allocate(gbuffers(lev)%sendSp(nz+1,1,nx))
-       allocate(gbuffers(lev)%recvSp(nz+1,1,nx))
-       allocate(gbuffers(lev)%sendNp(nz+1,1,nx))
-       allocate(gbuffers(lev)%recvNp(nz+1,1,nx))
+       allocate(gbuffers(lev)%sendSp(nx,1,nz+1)) ! ijk
+       allocate(gbuffers(lev)%recvSp(nx,1,nz+1)) ! ijk
+       allocate(gbuffers(lev)%sendNp(nx,1,nz+1)) ! ijk
+       allocate(gbuffers(lev)%recvNp(nx,1,nz+1)) ! ijk
     enddo
 
     do lev=1,nlevs
        ny = grid(lev)%ny
        nz = grid(lev)%nz
-       allocate(gbuffers(lev)%sendEp(nz+1,ny,1))
-       allocate(gbuffers(lev)%recvEp(nz+1,ny,1))
-       allocate(gbuffers(lev)%sendWp(nz+1,ny,1))
-       allocate(gbuffers(lev)%recvWp(nz+1,ny,1))
+       allocate(gbuffers(lev)%sendEp(1,ny,nz+1)) ! ijk
+       allocate(gbuffers(lev)%recvEp(1,ny,nz+1)) ! ijk
+       allocate(gbuffers(lev)%sendWp(1,ny,nz+1)) ! ijk
+       allocate(gbuffers(lev)%recvWp(1,ny,nz+1)) ! ijk
     enddo
 
     do lev=1,nlevs
        nz = grid(lev)%nz
-       allocate(gbuffers(lev)%sendSWp(nz+1,1,1))
-       allocate(gbuffers(lev)%sendSEp(nz+1,1,1))
-       allocate(gbuffers(lev)%sendNWp(nz+1,1,1))
-       allocate(gbuffers(lev)%sendNEp(nz+1,1,1))
+       allocate(gbuffers(lev)%sendSWp(1,1,nz+1)) ! ijk
+       allocate(gbuffers(lev)%sendSEp(1,1,nz+1)) ! ijk
+       allocate(gbuffers(lev)%sendNWp(1,1,nz+1)) ! ijk
+       allocate(gbuffers(lev)%sendNEp(1,1,nz+1)) ! ijk
     enddo
 
     do lev=1,nlevs
        nz = grid(lev)%nz
-       allocate(gbuffers(lev)%recvSWp(nz+1,1,1))
-       allocate(gbuffers(lev)%recvSEp(nz+1,1,1))
-       allocate(gbuffers(lev)%recvNWp(nz+1,1,1))
-       allocate(gbuffers(lev)%recvNEp(nz+1,1,1))
+       allocate(gbuffers(lev)%recvSWp(1,1,nz+1)) ! ijk
+       allocate(gbuffers(lev)%recvSEp(1,1,nz+1)) ! ijk
+       allocate(gbuffers(lev)%recvNWp(1,1,nz+1)) ! ijk
+       allocate(gbuffers(lev)%recvNEp(1,1,nz+1)) ! ijk
     enddo
 
     ! MPI exhanges for 3D arrays (halo=2 ) zr and dz
     do lev=1,nlevs
        nx = grid(lev)%nx
        nz = grid(lev)%nz
-       allocate(gbuffers(lev)%sendS3D2(nz,2,nx))
-       allocate(gbuffers(lev)%recvS3D2(nz,2,nx))
-       allocate(gbuffers(lev)%sendN3D2(nz,2,nx))
-       allocate(gbuffers(lev)%recvN3D2(nz,2,nx))
+       allocate(gbuffers(lev)%sendS3D2(nx,2,nz)) ! ijk
+       allocate(gbuffers(lev)%recvS3D2(nx,2,nz)) ! ijk
+       allocate(gbuffers(lev)%sendN3D2(nx,2,nz)) ! ijk
+       allocate(gbuffers(lev)%recvN3D2(nx,2,nz)) ! ijk
     enddo
 
     do lev=1,nlevs
        ny = grid(lev)%ny
        nz = grid(lev)%nz
-       allocate(gbuffers(lev)%sendE3D2(nz,ny,2))
-       allocate(gbuffers(lev)%recvE3D2(nz,ny,2))
-       allocate(gbuffers(lev)%sendW3D2(nz,ny,2))
-       allocate(gbuffers(lev)%recvW3D2(nz,ny,2))
+       allocate(gbuffers(lev)%sendE3D2(2,ny,nz)) ! ijk
+       allocate(gbuffers(lev)%recvE3D2(2,ny,nz)) ! ijk
+       allocate(gbuffers(lev)%sendW3D2(2,ny,nz)) ! ijk
+       allocate(gbuffers(lev)%recvW3D2(2,ny,nz)) ! ijk
     enddo
 
     do lev=1,nlevs
        nz = grid(lev)%nz
-       allocate(gbuffers(lev)%sendSW3D2(nz,2,2))
-       allocate(gbuffers(lev)%sendSE3D2(nz,2,2))
-       allocate(gbuffers(lev)%sendNW3D2(nz,2,2))
-       allocate(gbuffers(lev)%sendNE3D2(nz,2,2))
+       allocate(gbuffers(lev)%sendSW3D2(2,2,nz)) ! ijk
+       allocate(gbuffers(lev)%sendSE3D2(2,2,nz)) ! ijk
+       allocate(gbuffers(lev)%sendNW3D2(2,2,nz)) ! ijk
+       allocate(gbuffers(lev)%sendNE3D2(2,2,nz)) ! ijk
     enddo
 
     do lev=1,nlevs
        nz = grid(lev)%nz
-       allocate(gbuffers(lev)%recvSW3D2(nz,2,2))
-       allocate(gbuffers(lev)%recvSE3D2(nz,2,2))
-       allocate(gbuffers(lev)%recvNW3D2(nz,2,2))
-       allocate(gbuffers(lev)%recvNE3D2(nz,2,2))
+       allocate(gbuffers(lev)%recvSW3D2(2,2,nz)) ! ijk
+       allocate(gbuffers(lev)%recvSE3D2(2,2,nz)) ! ijk
+       allocate(gbuffers(lev)%recvNW3D2(2,2,nz)) ! ijk
+       allocate(gbuffers(lev)%recvNE3D2(2,2,nz)) ! ijk
     enddo
 
     do lev=1,nlevs
        nx = grid(lev)%nx
        nz = grid(lev)%nz
-       allocate(gbuffers(lev)%sendS3D2p(nz+1,2,nx))
-       allocate(gbuffers(lev)%recvS3D2p(nz+1,2,nx))
-       allocate(gbuffers(lev)%sendN3D2p(nz+1,2,nx))
-       allocate(gbuffers(lev)%recvN3D2p(nz+1,2,nx))
+       allocate(gbuffers(lev)%sendS3D2p(nx,2,nz+1)) ! ijk
+       allocate(gbuffers(lev)%recvS3D2p(nx,2,nz+1)) ! ijk
+       allocate(gbuffers(lev)%sendN3D2p(nx,2,nz+1)) ! ijk
+       allocate(gbuffers(lev)%recvN3D2p(nx,2,nz+1)) ! ijk
     enddo
 
     do lev=1,nlevs
        ny = grid(lev)%ny
        nz = grid(lev)%nz
-       allocate(gbuffers(lev)%sendE3D2p(nz+1,ny,2))
-       allocate(gbuffers(lev)%recvE3D2p(nz+1,ny,2))
-       allocate(gbuffers(lev)%sendW3D2p(nz+1,ny,2))
-       allocate(gbuffers(lev)%recvW3D2p(nz+1,ny,2))
+       allocate(gbuffers(lev)%sendE3D2p(2,ny,nz+1)) ! ijk
+       allocate(gbuffers(lev)%recvE3D2p(2,ny,nz+1)) ! ijk
+       allocate(gbuffers(lev)%sendW3D2p(2,ny,nz+1)) ! ijk
+       allocate(gbuffers(lev)%recvW3D2p(2,ny,nz+1)) ! ijk
     enddo
 
     do lev=1,nlevs
        nz = grid(lev)%nz
-       allocate(gbuffers(lev)%sendSW3D2p(nz+1,2,2))
-       allocate(gbuffers(lev)%sendSE3D2p(nz+1,2,2))
-       allocate(gbuffers(lev)%sendNW3D2p(nz+1,2,2))
-       allocate(gbuffers(lev)%sendNE3D2p(nz+1,2,2))
+       allocate(gbuffers(lev)%sendSW3D2p(2,2,nz+1)) ! ijk
+       allocate(gbuffers(lev)%sendSE3D2p(2,2,nz+1)) ! ijk
+       allocate(gbuffers(lev)%sendNW3D2p(2,2,nz+1)) ! ijk
+       allocate(gbuffers(lev)%sendNE3D2p(2,2,nz+1)) ! ijk
     enddo
 
     do lev=1,nlevs
        nz = grid(lev)%nz
-       allocate(gbuffers(lev)%recvSW3D2p(nz+1,2,2))
-       allocate(gbuffers(lev)%recvSE3D2p(nz+1,2,2))
-       allocate(gbuffers(lev)%recvNW3D2p(nz+1,2,2))
-       allocate(gbuffers(lev)%recvNE3D2p(nz+1,2,2))
+       allocate(gbuffers(lev)%recvSW3D2p(2,2,nz+1)) ! ijk
+       allocate(gbuffers(lev)%recvSE3D2p(2,2,nz+1)) ! ijk
+       allocate(gbuffers(lev)%recvNW3D2p(2,2,nz+1)) ! ijk
+       allocate(gbuffers(lev)%recvNE3D2p(2,2,nz+1)) ! ijk
     enddo
 
     ! MPI exhanges for 4D CA array
@@ -438,10 +437,10 @@ contains
        else
           nd = 8
        endif
-       allocate(gbuffers(lev)%sendS4D(nd,nz,nx))
-       allocate(gbuffers(lev)%recvS4D(nd,nz,nx))
-       allocate(gbuffers(lev)%sendN4D(nd,nz,nx))
-       allocate(gbuffers(lev)%recvN4D(nd,nz,nx))
+       allocate(gbuffers(lev)%sendS4D(nd,nx,nz)) ! ijk
+       allocate(gbuffers(lev)%recvS4D(nd,nx,nz)) ! ijk
+       allocate(gbuffers(lev)%sendN4D(nd,nx,nz)) ! ijk
+       allocate(gbuffers(lev)%recvN4D(nd,nx,nz)) ! ijk
     enddo
 
     do lev=1,nlevs
@@ -452,10 +451,10 @@ contains
        else
           nd = 8
        endif
-       allocate(gbuffers(lev)%sendE4D(nd,nz,ny))
-       allocate(gbuffers(lev)%recvE4D(nd,nz,ny))
-       allocate(gbuffers(lev)%sendW4D(nd,nz,ny))
-       allocate(gbuffers(lev)%recvW4D(nd,nz,ny))
+       allocate(gbuffers(lev)%sendE4D(nd,ny,nz)) ! ijk
+       allocate(gbuffers(lev)%recvE4D(nd,ny,nz)) ! ijk
+       allocate(gbuffers(lev)%sendW4D(nd,ny,nz)) ! ijk
+       allocate(gbuffers(lev)%recvW4D(nd,ny,nz)) ! ijk
     enddo
 
     do lev=1,nlevs
