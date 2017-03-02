@@ -225,8 +225,8 @@ program mg_testseamount
 
   enddo
 
-!!$  deallocate(tmp_rnd)
-!!$  deallocate(tmp_rnd2)
+  deallocate(tmp_rnd)
+  deallocate(tmp_rnd2)
 
   !---------------------!
   !- Deallocate memory -!
@@ -243,4 +243,3 @@ program mg_testseamount
   if(rank == 0) call print_tictoc(rank)
 
 end program mg_testseamount
-
