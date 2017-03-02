@@ -125,8 +125,8 @@ contains
           j=2*j2-1 ! ijk
           do i2=1,nx ! ijk
              i=2*i2-1 ! ijk
-             z = x(i,j,k) + x(i+1,j,k) + x(i,j+1,k) + x(i+1,j+1,k) & ! ijk
-                  + x(i,j,k+1)+x(i+1,j,k+1)+x(i,j+1,k+1)+x(i+1,j+1,k+1) ! ijk
+             z =    x(i,j,k  )+ x(i+1,j,k  )+ x(i,j+1,k  )+ x(i+1,j+1,k  ) & ! ijk
+                  + x(i,j,k+1)+ x(i+1,j,k+1)+ x(i,j+1,k+1)+ x(i+1,j+1,k+1)   ! ijk
              y(i2,j2,k2) = z ! ijk
           enddo
        enddo
@@ -411,7 +411,7 @@ contains
        do i2=1,nx ! ijk
           i=2*i2-1 ! ijk
 
-          xf(j,j,k) =  hlf                               * ( & ! ijk
+          xf(i,j,k) =  hlf                               * ( & ! ijk
                a * xc(i2,j2  ,k2) + c * xc(i2-1,j2-1,k2) +   & ! ijk
                b * xc(i2,j2-1,k2) + b * xc(i2-1,j2  ,k2)   )   ! ijk
           xf(i,j+1,k) =  hlf                             * ( & ! ijk

@@ -258,45 +258,45 @@ contains
     ! cA(8,:,:,:)      -> p(i-1,j  ,k-1)
 
     k=1 !lower level
-    rhs(k) = b(i,j,k)                                                        &
-         - cA(3,i  ,j  ,k  ) * p(i,j-1,k+1)                                  &
-         - cA(4,i  ,j  ,k  ) * p(i,j-1,k  ) - cA(4,i  ,j+1,k) * p(i  ,j+1,k) &
-         - cA(5,i  ,j+1,k+1) * p(i,j+1,k+1)                                  &
-         - cA(6,i  ,j  ,k  ) * p(i-1,j,k+1)                                  &
-         - cA(7,i  ,j  ,k  ) * p(i-1  ,j,k) - cA(7,i+1,j  ,k) * p(i+1,j  ,k) &
-         - cA(8,i+1,j  ,k+1) * p(i+1,j,k+1) 
+    rhs(k) = b(i,j,k)                                                        & ! ijk
+         - cA(3,i  ,j  ,k  ) * p(i,j-1,k+1)                                  & ! ijk
+         - cA(4,i  ,j  ,k  ) * p(i,j-1,k  ) - cA(4,i  ,j+1,k) * p(i  ,j+1,k) & ! ijk
+         - cA(5,i  ,j+1,k+1) * p(i,j+1,k+1)                                  & ! ijk
+         - cA(6,i  ,j  ,k  ) * p(i-1,j,k+1)                                  & ! ijk
+         - cA(7,i  ,j  ,k  ) * p(i-1  ,j,k) - cA(7,i+1,j  ,k) * p(i+1,j  ,k) & ! ijk
+         - cA(8,i+1,j  ,k+1) * p(i+1,j,k+1)                                    ! ijk
 
     if (cmatrix == 'real') then
        !- Exception for the redefinition of the coef for the bottom level
        rhs(k) = rhs(k) &
-            - cA(5,i,j,k) * p(i-1,j+1,k) - cA(5,i+1,j-1,k) * p(i+1,j-1,k) &
-            - cA(8,i,j,k) * p(i-1,j-1,k) - cA(8,i+1,j+1,k) * p(i+1,j+1,k)
+            - cA(5,i,j,k) * p(i-1,j+1,k) - cA(5,i+1,j-1,k) * p(i+1,j-1,k) & ! ijk
+            - cA(8,i,j,k) * p(i-1,j-1,k) - cA(8,i+1,j+1,k) * p(i+1,j+1,k)    ! ijk
     endif
 
-    d(k)   = cA(1,i,j,k)
-    ud(k)  = cA(2,i,j,k+1)
+    d(k)   = cA(1,i,j,k)   ! ijk
+    ud(k)  = cA(2,i,j,k+1) ! ijk 
 
     do k = 2,nz-1 !interior levels
-       rhs(k) = b(i,j,k) &
-            - cA(3,i,j,k) * p(i  ,j-1,k+1) - cA(3,i  ,j+1,k-1) * p(i  ,j+1,k-1) &
-            - cA(4,i,j,k) * p(i  ,j-1,k  ) - cA(4,i  ,j+1,k  ) * p(i  ,j+1,k  ) &
-            - cA(5,i,j,k) * p(i  ,j-1,k-1) - cA(5,i  ,j+1,k+1) * p(i  ,j+1,k+1) &
-            - cA(6,i,j,k) * p(i-1,j  ,k+1) - cA(6,i+1,j  ,k-1) * p(i+1,j  ,k-1) &
-            - cA(7,i,j,k) * p(i-1,j  ,k  ) - cA(7,i+1,j  ,k  ) * p(i+1,j  ,k  ) &
-            - cA(8,i,j,k) * p(i-1,j,  k-1) - cA(8,i+1,j  ,k+1) * p(i+1,j  ,k+1) 
-       d(k)   = cA(1,i,j,k)
-       ud(k)  = cA(2,i,j,k+1)
+       rhs(k) = b(i,j,k)                                                        & ! ijk
+            - cA(3,i,j,k) * p(i  ,j-1,k+1) - cA(3,i  ,j+1,k-1) * p(i  ,j+1,k-1) & ! ijk
+            - cA(4,i,j,k) * p(i  ,j-1,k  ) - cA(4,i  ,j+1,k  ) * p(i  ,j+1,k  ) & ! ijk
+            - cA(5,i,j,k) * p(i  ,j-1,k-1) - cA(5,i  ,j+1,k+1) * p(i  ,j+1,k+1) & ! ijk
+            - cA(6,i,j,k) * p(i-1,j  ,k+1) - cA(6,i+1,j  ,k-1) * p(i+1,j  ,k-1) & ! ijk
+            - cA(7,i,j,k) * p(i-1,j  ,k  ) - cA(7,i+1,j  ,k  ) * p(i+1,j  ,k  ) & ! ijk
+            - cA(8,i,j,k) * p(i-1,j,  k-1) - cA(8,i+1,j  ,k+1) * p(i+1,j  ,k+1)   ! ijk
+       d(k)   = cA(1,i,j,k  ) ! ijk
+       ud(k)  = cA(2,i,j,k+1) ! ijk
     enddo
 
     k=nz !upper level
-    rhs(k) = b(i,j,k)                                                          &
-         - cA(3,i  ,j+1,k-1) * p(i  ,j+1,k-1)                                  &
-         - cA(4,i  ,j  ,k  ) * p(i  ,j-1,k  ) - cA(4,i  ,j+1,k)  *p(i  ,j+1,k) &
-         - cA(5,i  ,j  ,k  ) * p(i  ,j-1,k-1)                                  &
-         - cA(6,i+1,j  ,k-1) * p(i+1,j  ,k-1)                                  &
-         - cA(7,i  ,j  ,k  ) * p(i-1,j  ,k  ) - cA(7,i+1,j  ,k) * p(i+1,j  ,k) &
-         - cA(8,i  ,j  ,k  ) * p(i-1,j  ,k-1) 
-    d(k)   = cA(1,i,j,k)
+    rhs(k) = b(i,j,k)                                                          & ! ijk
+         - cA(3,i  ,j+1,k-1) * p(i  ,j+1,k-1)                                  & ! ijk
+         - cA(4,i  ,j  ,k  ) * p(i  ,j-1,k  ) - cA(4,i  ,j+1,k)  *p(i  ,j+1,k) & ! ijk
+         - cA(5,i  ,j  ,k  ) * p(i  ,j-1,k-1)                                  & ! ijk
+         - cA(6,i+1,j  ,k-1) * p(i+1,j  ,k-1)                                  & ! ijk
+         - cA(7,i  ,j  ,k  ) * p(i-1,j  ,k  ) - cA(7,i+1,j  ,k) * p(i+1,j  ,k) & ! ijk
+         - cA(8,i  ,j  ,k  ) * p(i-1,j  ,k-1)                                    ! ijk
+    d(k)   = cA(1,i,j,k) ! ijk
 
     call tridiag(nz,d,ud,rhs,p(i,j,:)) !solve for vertical_coeff_matrix.p1d=rhs
 
@@ -434,64 +434,64 @@ contains
     res = zero
 
     k=1 !lower level
-    do j = 1,ny
-       do i = 1,nx
+    do j = 1,ny    ! ijk
+       do i = 1,nx ! ijk
 
-          r(i,j,k) = b(i,j,k)                                                        &
-               - cA(1,i  ,j  ,k  ) * p(i  ,j  ,k  )                                  &
-               - cA(2,i  ,j  ,k+1) * p(i  ,j  ,k+1)                                  &
-               - cA(3,i  ,j  ,k  ) * p(i  ,j-1,k+1)                                  &
-               - cA(4,i  ,j  ,k  ) * p(i  ,j-1,k  ) - cA(4,i  ,j+1,k) * p(i  ,j+1,k) &
-               - cA(5,i  ,j+1,k+1) * p(i  ,j+1,k+1)                                  &
-               - cA(6,i  ,j  ,k  ) * p(i-1,j  ,k+1)                                  &
-               - cA(7,i  ,j  ,k  ) * p(i-1,j  ,k  ) - cA(7,i+1,j  ,k) * p(i+1,j  ,k) &
-               - cA(8,i+1,j  ,k+1) * p(i+1,j  ,k+1)
+          r(i,j,k) = b(i,j,k)                                                        & ! ijk
+               - cA(1,i  ,j  ,k  ) * p(i  ,j  ,k  )                                  & ! ijk
+               - cA(2,i  ,j  ,k+1) * p(i  ,j  ,k+1)                                  & ! ijk
+               - cA(3,i  ,j  ,k  ) * p(i  ,j-1,k+1)                                  & ! ijk
+               - cA(4,i  ,j  ,k  ) * p(i  ,j-1,k  ) - cA(4,i  ,j+1,k) * p(i  ,j+1,k) & ! ijk
+               - cA(5,i  ,j+1,k+1) * p(i  ,j+1,k+1)                                  & ! ijk
+               - cA(6,i  ,j  ,k  ) * p(i-1,j  ,k+1)                                  & ! ijk
+               - cA(7,i  ,j  ,k  ) * p(i-1,j  ,k  ) - cA(7,i+1,j  ,k) * p(i+1,j  ,k) & ! ijk
+               - cA(8,i+1,j  ,k+1) * p(i+1,j  ,k+1)                                    ! ijk
 
           if (cmatrix == 'real') then
              !- Exception for the redefinition of the coef for the bottom level
-             r(i,j,k) = r(i,j,k) &
-                  - cA(5,i,j,k) * p(i-1,j+1,k) - cA(5,i+1,j-1,k) * p(i+1,j-1,k) &
-                  - cA(8,i,j,k) * p(i-1,j-1,k) - cA(8,i+1,j+1,k) * p(i+1,j+1,k)
+             r(i,j,k) = r(i,j,k) &                                                ! ijk
+                  - cA(5,i,j,k) * p(i-1,j+1,k) - cA(5,i+1,j-1,k) * p(i+1,j-1,k) & ! ijk
+                  - cA(8,i,j,k) * p(i-1,j-1,k) - cA(8,i+1,j+1,k) * p(i+1,j+1,k)   ! ijk
           endif
 
-          res = res+r(i,j,k)*r(i,j,k)
+          res = res+r(i,j,k)*r(i,j,k)  ! ijk
        enddo
     enddo
 
-    do k = 2,nz-1 !interior levels
-       do j = 1,ny
-          do i = 1,nx
+    do k = 2,nz-1 !interior levels  ! ijk
+       do j = 1,ny    ! ijk
+          do i = 1,nx ! ijk
 
-             r(i,j,k) = b(i,j,k)                                                    &
-                  - cA(1,i,j,k) * p(i,j  ,k  )                                      &
-                  - cA(2,i,j,k) * p(i,j  ,k-1) - cA(2,i  ,j  ,k+1) * p(i  ,j  ,k+1) &
-                  - cA(3,i,j,k) * p(i,j-1,k+1) - cA(3,i  ,j+1,k-1) * p(i  ,j+1,k-1) &
-                  - cA(4,i,j,k) * p(i,j-1,k  ) - cA(4,i  ,j+1,k  ) * p(i  ,j+1,k  ) &
-                  - cA(5,i,j,k) * p(i,j-1,k-1) - cA(5,i  ,j+1,k+1) * p(i  ,j+1,k+1) &
-                  - cA(6,i,j,k) * p(i-1,j,k+1) - cA(6,i+1,j  ,k-1) * p(i+1,j  ,k-1) &
-                  - cA(7,i,j,k) * p(i-1,j,k  ) - cA(7,i+1,j  ,k  ) * p(i+1,j  ,k  ) &
-                  - cA(8,i,j,k) * p(i-1,j,k-1) - cA(8,i+1,j  ,k+1) * p(i+1,j  ,k+1)
+             r(i,j,k) = b(i,j,k)                                                    & ! ijk
+                  - cA(1,i,j,k) * p(i,j  ,k  )                                      & ! ijk
+                  - cA(2,i,j,k) * p(i,j  ,k-1) - cA(2,i  ,j  ,k+1) * p(i  ,j  ,k+1) & ! ijk
+                  - cA(3,i,j,k) * p(i,j-1,k+1) - cA(3,i  ,j+1,k-1) * p(i  ,j+1,k-1) & ! ijk
+                  - cA(4,i,j,k) * p(i,j-1,k  ) - cA(4,i  ,j+1,k  ) * p(i  ,j+1,k  ) & ! ijk
+                  - cA(5,i,j,k) * p(i,j-1,k-1) - cA(5,i  ,j+1,k+1) * p(i  ,j+1,k+1) & ! ijk
+                  - cA(6,i,j,k) * p(i-1,j,k+1) - cA(6,i+1,j  ,k-1) * p(i+1,j  ,k-1) & ! ijk
+                  - cA(7,i,j,k) * p(i-1,j,k  ) - cA(7,i+1,j  ,k  ) * p(i+1,j  ,k  ) & ! ijk
+                  - cA(8,i,j,k) * p(i-1,j,k-1) - cA(8,i+1,j  ,k+1) * p(i+1,j  ,k+1)   ! ijk
 
-             res = res+r(i,j,k)*r(i,j,k)
+             res = res+r(i,j,k)*r(i,j,k) ! ijk
           enddo
 
        enddo
     enddo
 
     k=nz !upper level
-    do j = 1,ny
-       do i = 1,nx
-          r(i,j,k) = b(i,j,k)                                                        &
-               - cA(1,i  ,j  ,k  ) * p(i  ,j  ,k  )                                  &
-               - cA(2,i  ,j  ,k  ) * p(i  ,j  ,k-1)                                  &
-               - cA(3,i  ,j+1,k-1) * p(i  ,j+1,k-1)                                  &
-               - cA(4,i  ,j  ,k  ) * p(i  ,j-1,k  ) - cA(4,i  ,j+1,k) * p(i  ,j+1,k) & 
-               - cA(5,i  ,j  ,k  ) * p(i  ,j-1,k-1)                                  &
-               - cA(6,i+1,j  ,k-1) * p(i+1,j  ,k-1)                                  &
-               - cA(7,i  ,j  ,k  ) * p(i-1,j  ,k  ) - cA(7,i+1,j  ,k) * p(i+1,j  ,k) &
-               - cA(8,i  ,j  ,k  ) * p(i-1,j  ,k-1)
+    do j = 1,ny    ! ijk
+       do i = 1,nx ! ijk
+          r(i,j,k) = b(i,j,k)                                                        & ! ijk
+               - cA(1,i  ,j  ,k  ) * p(i  ,j  ,k  )                                  & ! ijk
+               - cA(2,i  ,j  ,k  ) * p(i  ,j  ,k-1)                                  & ! ijk
+               - cA(3,i  ,j+1,k-1) * p(i  ,j+1,k-1)                                  & ! ijk
+               - cA(4,i  ,j  ,k  ) * p(i  ,j-1,k  ) - cA(4,i  ,j+1,k) * p(i  ,j+1,k) & ! ijk
+               - cA(5,i  ,j  ,k  ) * p(i  ,j-1,k-1)                                  & ! ijk
+               - cA(6,i+1,j  ,k-1) * p(i+1,j  ,k-1)                                  & ! ijk
+               - cA(7,i  ,j  ,k  ) * p(i-1,j  ,k  ) - cA(7,i+1,j  ,k) * p(i+1,j  ,k) & ! ijk
+               - cA(8,i  ,j  ,k  ) * p(i-1,j  ,k-1)                                    ! ijk
 
-          res = res+r(i,j,k)*r(i,j,k)
+          res = res+r(i,j,k)*r(i,j,k)  ! ijk
        enddo
     enddo
 

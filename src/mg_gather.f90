@@ -119,7 +119,7 @@ contains
     nx = grid(lev)%nx
     ny = grid(lev)%ny
     !21112016   nz = grid(lev)%nz
-    nz = size(x,dim=1) ! k,j,i convention
+    nz = size(x,dim=3) ! k,j,i convention ! ijk 
 
     ! numel(x)
     if (nz > grid(lev)%nz) then
