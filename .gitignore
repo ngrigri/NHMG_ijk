@@ -34,6 +34,7 @@ testseamount
 testcuc
 testrndtopo
 testseamount
+testseamount_rnd
 testfillhalo
 nhmg_ncjoin
 # Ignore files starting with fort.*
