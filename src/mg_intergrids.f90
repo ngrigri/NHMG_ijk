@@ -414,7 +414,7 @@ contains
           xf(j,j,k) =  hlf                               * ( & ! ijk
                a * xc(i2,j2  ,k2) + c * xc(i2-1,j2-1,k2) +   & ! ijk
                b * xc(i2,j2-1,k2) + b * xc(i2-1,j2  ,k2)   )   ! ijk
-          xf(i,j+1) =  hlf                               * ( & ! ijk
+          xf(i,j+1,k) =  hlf                             * ( & ! ijk
                a * xc(i2,j2  ,k2) + c * xc(i2-1,j2+1,k2) +   & ! ijk
                b * xc(i2,j2+1,k2) + b * xc(i2-1,j2  ,k2)   )   ! ijk
           xf(i+1,j,k) =  hlf                             * ( & ! ijk

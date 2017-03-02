@@ -224,7 +224,7 @@ contains
     nx = grid(lev)%nx
     ny = grid(lev)%ny
     nz = grid(lev)%nz
-    allocate(grid(lev)%dummy3Dnz  0:nx+1,0:ny+1,nz  )) ! ijk
+    allocate(grid(lev)%dummy3Dnz (0:nx+1,0:ny+1,nz  )) ! ijk
     allocate(grid(lev)%dummy3Dnzp(0:nx+1,0:ny+1,nz+1)) ! ijk
 
     allocate(grid(lev)%u (0:nx+1,0:ny+1,1:nz  )) ! ijk
@@ -752,11 +752,11 @@ contains
 
           nx = nx/ngx ! ngx is 1 or 2 (and generally 2)
           ny = ny/ngy ! ngy is 1 or 2 (and generally 2)
-          allocate(grid(lev)%dummy3(nz,0:ny+1,0:nx+1))
+          allocate(grid(lev)%dummy3(0:nx+1,0:ny+1,nz)) ! ijk
 
-          allocate(grid(lev)%gatherbuffer2D(0:ny+1,0:nx+1,0:ngx-1,0:ngy-1))
-          allocate(grid(lev)%gatherbuffer (1:nz  ,0:ny+1,0:nx+1,0:ngx-1,0:ngy-1))
-          allocate(grid(lev)%gatherbufferp(1:nz+1,0:ny+1,0:nx+1,0:ngx-1,0:ngy-1))
+          allocate(grid(lev)%gatherbuffer2D(0:nx+1,0:ny+1,0:ngx-1,0:ngy-1))       !ijk
+          allocate(grid(lev)%gatherbuffer (0:nx+1,0:ny+1,1:nz  ,0:ngx-1,0:ngy-1)) !ijk
+          allocate(grid(lev)%gatherbufferp(0:nx+1,0:ny+1,1:nz+1,0:ngx-1,0:ngy-1)) !ijk
 
           ! number of elements of dummy3
           grid(lev)%Ng2D=(nx+2)*(ny+2)

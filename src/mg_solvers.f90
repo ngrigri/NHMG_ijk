@@ -30,7 +30,7 @@ contains
     logical :: verbose
 
     verbose = .false.
-    if (mod(count,10)==0) verbose=.true.
+    if (mod(count,1)==0) verbose=.true.
     count = count+1
     if ((myrank==0).and.verbose) write(*,*)'     ---------------'
 

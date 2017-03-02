@@ -137,7 +137,7 @@ contains
     elseif ((lbc).and.(trim(cuv)=='u')) then
 !       a2d(:,nx+1) = zero
     else !!Homogenous Neumann 
-       a2D(,nx+1,1:ny) = a2D(nx,1:ny) ! ijk
+       a2D(nx+1,1:ny) = a2D(nx,1:ny) ! ijk
     endif
 
     if (north.ne.MPI_PROC_NULL) then
@@ -1402,7 +1402,7 @@ contains
     endif
 
     if (west.ne.MPI_PROC_NULL) then
-       sendW = cA(:,:,1:ny,1)  
+       sendW = cA(:,1,1:ny,:)  ! ijk 
        call MPI_ISend(                                &
             sendW,nd*nz*ny,MPI_DOUBLE_PRECISION,west, &
             wetag,MPI_COMM_WORLD,req(12),ierr)
@@ -1418,7 +1418,7 @@ contains
     endif
 
     if (southeast.ne.MPI_PROC_NULL) then
-       sendSE = cA(:,nx,1,1)  ! ijk
+       sendSE = cA(:,nx,1,:)  ! ijk
        call MPI_ISend(                                   &
             sendSE,nd*nz,MPI_DOUBLE_PRECISION,southeast, &
             senwtag,MPI_COMM_WORLD,req(14),ierr)

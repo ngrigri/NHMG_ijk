@@ -14,35 +14,36 @@ module mg_projection
 contains
   !-------------------------------------------------------------------------     
   subroutine set_rhs
-    
+
     integer(kind=ip):: k,j,i
     integer(kind=ip):: nx,ny,nz
 
     real(kind=rp), dimension(:,:,:), pointer :: u,v,w,rhs
 
-!    if (myrank==0) write(*,*)'   - set rhs:'
-    
+    !    if (myrank==0) write(*,*)'   - set rhs:'
+
     nx = grid(1)%nx
     ny = grid(1)%ny
     nz = grid(1)%nz
-   
+
     u => grid(1)%u
     v => grid(1)%v
     w => grid(1)%w
 
     rhs => grid(1)%b
-	
+
     !! What comes into nhmg_solve are area integrated u,v,w.
-    do i = 1,nx
-       do j = 1,ny 
-          do k = 1,nz
-             rhs(k,j,i) = u(k,j,i+1) - u(k,j,i) &
-                        + v(k,j+1,i) - v(k,j,i) &
-                        + w(k+1,j,i) - w(k,j,i)
+    do k = 1,nz       ! ijk
+       do j = 1,ny    ! ijk
+          do i = 1,nx ! ijk
+             rhs(i,j,k) = &                     ! ijk
+                  + u(i+1,j  ,k  ) - u(i,j,k) & ! ijk
+                  + v(i  ,j+1,k  ) - v(i,j,k) & ! ijk
+                  + w(i  ,j  ,k+1) - w(i,j,k)   ! ijk
           enddo
        enddo
     enddo
-    
+
   end subroutine set_rhs
 
   !-----------------------------------------------------------------------------------
@@ -75,7 +76,7 @@ contains
     real(kind=rp), dimension(:,:),     pointer :: gamv
     real(kind=rp), dimension(:,:,:,:), pointer :: cA
 
-!    if (myrank==0) write(*,*)'   - set matrices:'
+    !    if (myrank==0) write(*,*)'   - set matrices:'
 
     do lev = 1, nlevs
 
@@ -105,76 +106,76 @@ contains
        !- lower level -!
        !---------------!
        k = 1
-       do i = 1,nx
-          do j = 1,ny+1
+       do j = 1,ny+1  ! ijk
+          do i = 1,nx ! ijk
              ! couples with k+1,j-1
-             cA(3,k,j,i) = qrt * ( zydx(k+1,j,i) + zydx(k,j-1,i) )
+             cA(3,i,j,k) = qrt * ( zydx(i,j,k+1) + zydx(i,j-1,k) ) ! ijk
              ! couples with j-1
-             cA(4,k,j,i) = hlf * (gamv(j,i) + gamv(j-1,i)) * Ary(k,j,i) / dyv(j,i) &
-                  - qrt * ( zydx(k,j-1,i) - zydx(k,j,i) )
+             cA(4,i,j,k) = hlf * (gamv(i,j) + gamv(i,j-1)) * Ary(i,j,k) / dyv(i,j) & ! ijk
+                  - qrt * ( zydx(i,j-1,k) - zydx(i,j,k) ) ! ijk
           enddo
        enddo
 
-       do i = 1,nx+1
-          do j = 1,ny
+       do j = 1,ny      ! ijk
+          do i = 1,nx+1 ! ijk
              ! couples with k+1,i-1
-             cA(6,k,j,i) = qrt * ( zxdy(k+1,j,i) + zxdy(k,j,i-1) )
+             cA(6,i,j,k) = qrt * ( zxdy(i,j,k+1) + zxdy(i-1,j,k) ) ! ijk
              ! couples with i-1
-             cA(7,k,j,i) = hlf * (gamu(j,i) + gamu(j,i-1))  * Arx(k,j,i) / dxu(j,i) &
-                  - qrt * ( zxdy(k,j,i-1) - zxdy(k,j,i) )
+             cA(7,i,j,k) = hlf * (gamu(i,j) + gamu(i-1,j))  * Arx(i,j,k) / dxu(i,j) & ! ijk
+                  - qrt * ( zxdy(i-1,j,k) - zxdy(i,j,k) ) ! ijk
           enddo
        enddo
 
-       do i = 1,nx+1
-          do j = 0,ny
+       do j = 0,ny      ! ijk
+          do i = 1,nx+1 ! ijk
              ! only for k==1, couples with j+1,i-1
-             cA(5,k,j,i) = beta(j,i-1) + beta(j+1,i)
+             cA(5,i,j,k) = beta(i-1,j) + beta(i,j+1) ! ijk
           enddo
        enddo
 
-       do i = 1,nx+1
-          do j = 1,ny+1
+       do j = 1,ny+1
+          do i = 1,nx+1
              ! only for k==1, couples with j-1,i-1
-             cA(8,k,j,i) = - beta(j,i-1) - beta(j-1,i)
+             cA(8,i,j,k) = - beta(i-1,j) - beta(i,j-1) ! ijk
           enddo
        enddo
 
        !-------------------!
        !- interior levels -!
        !-------------------!
-       do i = 1,nx
-          do j = 1,ny
-             do k = 2,nz-1 
+       do k = 2,nz-1     ! ijk
+          do j = 1,ny    ! ijk
+             do i = 1,nx ! ijk
                 ! couples with k-1
-                cA(2,k,j,i) = &
-                     ( Arz(j,i) / dzw(k,j,i) ) * &
-                     hlf * (alpha(k,j,i)+alpha(k-1,j,i))
+                cA(2,i,j,k) =                           & ! ijk
+                     ( Arz(i,j) / dzw(i,j,k) ) *        & ! ijk
+                     hlf * (alpha(i,j,k)+alpha(i,j,k-1))  ! ijk
              enddo
           enddo
        enddo
 
-       do i = 1,nx
-          do j = 1,ny+1
-             do k = 2,nz-1 
+       do k = 2,nz-1      ! ijk
+          do j = 1,ny+1   ! ijk
+             do i = 1,nx  ! ijk
                 ! couples with k+1,j-1
-                cA(3,k,j,i) = qrt * ( zydx(k+1,j,i) + zydx(k,j-1,i) )
+                cA(3,i,j,k) = qrt * ( zydx(i,j,k+1) + zydx(i,j-1,k) ) ! ijk
                 ! couples with j-1
-                cA(4,k,j,i) =  Ary(k,j,i) / dyv(j,i) 
+                cA(4,i,j,k) =  Ary(i,j,k) / dyv(i,j)  ! ijk
                 ! couples with k-1,j-1
-                cA(5,k,j,i) = - qrt * ( zydx(k-1,j,i) + zydx(k,j-1,i) )
+                cA(5,i,j,k) = - qrt * ( zydx(i,j,k-1) + zydx(i,j-1,k) ) ! ijk
              enddo
           enddo
        enddo
 
-       do i = 1,nx+1
-          do j = 1,ny 
-             do k = 2,nz-1 
+       do k = 2,nz-1       ! ijk
+          do j = 1,ny      ! ijk
+             do i = 1,nx+1 ! ijk
                 ! couples with k+1,i-1
-                cA(6,k,j,i) = qrt * ( zxdy(k+1,j,i) + zxdy(k,j,i-1) )
+                cA(6,i,j,k) = qrt * ( zxdy(i,j,k+1) + zxdy(i-1,j,k) ) ! ijk
                 ! couples with i-1
-                cA(7,k,j,i) = Arx(k,j,i) / dxu(j,i) 
+                cA(7,i,j,k) = Arx(i,j,k) / dxu(i,j) ! ijk
                 ! couples with k-1,i-1
-                cA(8,k,j,i) = - qrt * ( zxdy(k-1,j,i) + zxdy(k,j,i-1) )
+                cA(8,i,j,k) = - qrt * ( zxdy(i,j,k-1) + zxdy(i-1,j,k) ) ! ijk
              enddo
           enddo
        enddo
@@ -182,31 +183,31 @@ contains
        !---------------!
        !- upper level -!
        !---------------!
-       k = nz
-       do i = 1,nx    
-          do j = 1,ny 
+       k = nz         ! ijk
+       do j = 1,ny    ! ijk
+          do i = 1,nx ! ijk    
              ! couples with k-1
-             cA(2,k,j,i) = (Arz(j,i)/dzw(k,j,i)) * hlf * ( alpha(k,j,i) + alpha(k-1,j,i) )
+             cA(2,i,j,k) = (Arz(i,j)/dzw(i,j,k)) * hlf * ( alpha(i,j,k) + alpha(i,j,k-1) ) ! ijk
           enddo
        enddo
 
-       do i = 1,nx
-          do j = 1,ny+1
+       do j = 1,ny+1  ! ijk
+          do i = 1,nx ! ijk
              ! couples with j-1
-             cA(4,k,j,i) = Ary(k,j,i) / dyv(j,i) &
-                  + qrt * ( - zydx(k,j-1,i) + zydx(k,j,i) )
+             cA(4,i,j,k) = Ary(i,j,k) / dyv(i,j) &  ! ijk
+                  + qrt * ( - zydx(i,j-1,k) + zydx(i,j,k) ) ! ijk
              ! couples with k-1,j-1
-             cA(5,k,j,i) = - qrt * ( zydx(k-1,j,i) + zydx(k,j-1,i) )
+             cA(5,i,j,k) = - qrt * ( zydx(i,j,k-1) + zydx(i,j-1,k) ) ! ijk
           enddo
        enddo
 
-       do i = 1,nx+1
-          do j = 1,ny 
+       do j = 1,ny      ! ijk
+          do i = 1,nx+1 ! ijk
              ! couples with i-1
-             cA(7,k,j,i) = Arx(k,j,i) / dxu(j,i) &
-                  + qrt * ( -zxdy(k,j,i-1) + zxdy(k,j,i) )
+             cA(7,i,j,k) = Arx(i,j,k) / dxu(i,j) &          ! ijk
+                  + qrt * ( -zxdy(i-1,j,k) + zxdy(i,j,k) )  ! ijk
              ! couples with k-1,i-1
-             cA(8,k,j,i) = - qrt * ( zxdy(k-1,j,i) + zxdy(k,j,i-1) )
+             cA(8,i,j,k) = - qrt * ( zxdy(i,j,k-1) + zxdy(i-1,j,k) ) ! ijk
           enddo
        enddo
 
@@ -214,35 +215,45 @@ contains
 
        !! self-interaction coeff !!
 
-       do i = 1,nx
-          do j = 1,ny
+       !- lower level
+       k = 1
+       do j = 1,ny    ! ijk
+          do i = 1,nx ! ijk
+             cA(1,i,j,k) = &                                                          ! ijk
+                  - Arz(i  ,j)    /dzw(i,j,k+1) * hlf * (alpha(i,j,k+1) + alpha(i,j,k)) & ! ijk
+                  - Arx(i  ,j  ,k)/dxu(i  ,j  ) * hlf * (gamu(i,j) + gamu(i-1,j  )) & ! ijk
+                  - Arx(i+1,j  ,k)/dxu(i+1,j  ) * hlf * (gamu(i,j) + gamu(i+1,j  )) & ! ijk
+                  - Ary(i  ,j  ,k)/dyv(i  ,j  ) * hlf * (gamv(i,j) + gamv(i  ,j-1)) & ! ijk
+                  - Ary(i  ,j+1,k)/dyv(i  ,j+1) * hlf * (gamv(i,j) + gamv(i  ,j+1))   ! ijk
+          enddo
+       enddo
 
-             k = 1 !lower level
-             cA(1,k,j,i) = &
-                  - Arz(j,i) / dzw(k+1,j,i) * hlf * (alpha(k+1,j,i) + alpha(k,j,i)) &
-                  - Arx(k,j,i  )/dxu(j,i  ) * hlf * (gamu(j,i) + gamu(j  ,i-1)) &
-                  - Arx(k,j,i+1)/dxu(j,i+1) * hlf * (gamu(j,i) + gamu(j  ,i+1)) &
-                  - Ary(k,j  ,i)/dyv(j  ,i) * hlf * (gamv(j,i) + gamv(j-1,i  )) &
-                  - Ary(k,j+1,i)/dyv(j+1,i) * hlf * (gamv(j,i) + gamv(j+1,i  ))
-
-             do k = 2,nz-1 !interior levels
-                cA(1,k,j,i) = &
-                     - Arz(j,i) / dzw(k+1,j,i) * hlf * (alpha(k+1,j,i) + alpha(k,j,i)) &
-                     - Arz(j,i) / dzw(k  ,j,i) * hlf * (alpha(k-1,j,i) + alpha(k,j,i)) &
-                     - Arx(k,j,i  )/dxu(j,i  )  &
-                     - Arx(k,j,i+1)/dxu(j,i+1)  &
-                     - Ary(k,j  ,i)/dyv(j  ,i)  &
-                     - Ary(k,j+1,i)/dyv(j+1,i)
+       !- interior levels
+       do k = 2,nz-1 
+          do j = 1,ny    ! ijk
+             do i = 1,nx ! ijk
+                cA(1,i,j,k) = &                                                              ! ijk
+                     - Arz(i  ,j    )/dzw(i,j,k+1) * hlf * (alpha(i,j,k+1) + alpha(i,j,k)) & ! ijk
+                     - Arz(i  ,j    )/dzw(i,j,k  ) * hlf * (alpha(i,j,k-1) + alpha(i,j,k)) & ! ijk
+                     - Arx(i  ,j  ,k)/dxu(i  ,j  )  & ! ijk
+                     - Arx(i+1,j  ,k)/dxu(i+1,j  )  & ! ijk
+                     - Ary(i  ,j  ,k)/dyv(i  ,j  )  & ! ijk
+                     - Ary(i  ,j+1,k)/dyv(i  ,j+1)    ! ijk
              enddo
+          enddo
+       enddo
 
-             k=nz ! upper level
-             cA(1,k,j,i) = &
-                  - Arz(j,i) / dzw(k+1,j,i) * alpha(k,j,i) &
-                  - Arz(j,i) / dzw(k  ,j,i) * hlf * (alpha(k-1,j,i) + alpha(k,j,i)) &
-                  - Arx(k,j,i  )/dxu(j,i  )  &
-                  - Arx(k,j,i+1)/dxu(j,i+1)  &
-                  - Ary(k,j  ,i)/dyv(j  ,i)  &
-                  - Ary(k,j+1,i)/dyv(j+1,i)
+       !- upper level
+       k=nz 
+       do j = 1,ny    ! ijk
+          do i = 1,nx ! ijk
+             cA(1,i,j,k) = &                                                              ! ijk
+                  - Arz(i  ,j    )/dzw(i,j,k+1) * alpha(i,j,k) &                          ! ijk
+                  - Arz(i  ,j    )/dzw(i,j,k  ) * hlf * (alpha(i,j,k-1) + alpha(i,j,k)) & ! ijk
+                  - Arx(i  ,j  ,k)/dxu(i  ,j  )  & ! ijk
+                  - Arx(i+1,j  ,k)/dxu(i+1,j  )  & ! ijk
+                  - Ary(i  ,j  ,k)/dyv(i  ,j  )  & ! ijk
+                  - Ary(i  ,j+1,k)/dyv(i  ,j+1)    ! ijk
 
           enddo
        enddo
@@ -261,7 +272,7 @@ contains
 
     !! u,v,w are fluxes, the correction is T*grad(p)
 
-    integer(kind=ip):: k, j, i
+    integer(kind=ip):: i,j,k
     integer(kind=ip):: nx, ny, nz
 
     real(kind=rp) :: gamma
@@ -278,7 +289,7 @@ contains
 
     real(kind=rp), dimension(:,:,:), pointer :: px,py,pz
 
-!    if (myrank==0) write(*,*)'   - compute pressure gradient and translate to fluxes'
+    !    if (myrank==0) write(*,*)'   - compute pressure gradient and translate to fluxes'
 
     nx = grid(1)%nx
     ny = grid(1)%ny
@@ -303,36 +314,41 @@ contains
     pz => grid(1)%w
 
     !! Pressure gradient -
-
-    do i = 1,nx+1
-        do j = 0,ny+1
-          do k = 1,nz
-             px(k,j,i) = -one / dxu(j,i) * (p(k,j,i)-p(k,j,i-1))
+    do k = 1,nz         ! ijk
+       do j = 0,ny+1    ! ijk
+          do i = 1,nx+1 ! ijk
+             px(i,j,k) = -one / dxu(i,j) * (p(i,j,k)-p(i-1,j,k)) ! ijk
           enddo
        enddo
     enddo
 
-    do i = 0,nx+1
-       do j = 1,ny+1 
-          do k = 1,nz
-             py(k,j,i) = -one / dyv(j,i) * (p(k,j,i)-p(k,j-1,i))
+    do k = 1,nz         ! ijk
+       do j = 1,ny+1    ! ijk
+          do i = 0,nx+1 ! ijk
+             py(i,j,k) = -one / dyv(i,j) * (p(i,j,k)-p(i,j-1,k)) ! ijk
           enddo
        enddo
     enddo
 
-    do i = 0,nx+1
-       do j = 0,ny+1
+    k = 1 !bottom pressure gradient is undefined
+    do j = 0,ny+1    ! ijk
+       do i = 0,nx+1 ! ijk
+          pz(i,j,k) = 9999999999. ! ijk
+       enddo
+    enddo
 
-          k = 1 !bottom pressure gradient is undefined
-          pz(k,j,i) = 9999999999.
-
-          do k = 2,nz !interior levels
-             pz(k,j,i) = -one / dzw(k,j,i) * (p(k,j,i)-p(k-1,j,i))
+    do k = 2,nz !interior levels
+       do j = 0,ny+1    ! ijk
+          do i = 0,nx+1 ! ijk
+             pz(i,j,k) = -one / dzw(i,j,k) * (p(i,j,k)-p(i,j,k-1)) ! ijk
           enddo
+       enddo
+    enddo
 
-          k = nz+1 !surface
-          pz(k,j,i) =  -one / dzw(k,j,i) * (-p(k-1,j,i))
-
+    k = nz+1 !surface
+    do j = 0,ny+1    ! ijk
+       do i = 0,nx+1 ! ijk
+          pz(i,j,k) =  -one / dzw(i,j,k) * (-p(i,j,k-1)) ! ijk
        enddo
     enddo
 
@@ -340,37 +356,45 @@ contains
 
     du => grid(1)%du
 
-    do i = 1,nx+1  
-       do j = 1,ny 
-          k = 1
+    k = 1
+    do j = 1,ny      ! ijk
+       do i = 1,nx+1 ! ijk  
           gamma = one - qrt * ( &
-               (zxdy(k,j,i  )/dy(j,i  ))**2/alpha(k,j,i  ) + &
-               (zxdy(k,j,i-1)/dy(j,i-1))**2/alpha(k,j,i-1) )
-          du(k,j,i) = gamma * Arx(k,j,i) * px(k,j,i) &
+               (zxdy(i  ,j,k)/dy(i  ,j))**2/alpha(i  ,j,k) + & ! ijk
+               (zxdy(i-1,j,k)/dy(i-1,j))**2/alpha(i-1,j,k) )   ! ijk
+          du(i,j,k) = gamma * Arx(i,j,k) * px(i,j,k) & ! ijk
                - qrt * ( &
-               + zxdy(k,j,i  ) * dzw(k+1,j,i  ) * pz(k+1,j,i  ) &
-               + zxdy(k,j,i-1) * dzw(k+1,j,i-1) * pz(k+1,j,i-1) )  &
-               - beta(j,i-1)   * dyv(j  ,i-1)   * py(k,j  ,i-1) &
-               - beta(j,i-1)   * dyv(j+1,i-1)   * py(k,j+1,i-1) &
-               - beta(j,i  )   * dyv(j  ,i  )   * py(k,j  ,i  ) &
-               - beta(j,i  )   * dyv(j+1,i  )   * py(k,j+1,i  )
+               + zxdy(i  ,j,k) * dzw(i  ,j  ,k+1) * pz(i  ,j  ,k+1) & ! ijk
+               + zxdy(i-1,j,k) * dzw(i-1,j  ,k+1) * pz(i-1,j  ,k+1) )  & ! ijk
+               - beta(i-1,j)   * dyv(i-1,j  )     * py(i-1,j  ,k  ) & ! ijk
+               - beta(i-1,j)   * dyv(i-1,j+1)     * py(i-1,j+1,k  ) & ! ijk
+               - beta(i  ,j)   * dyv(i  ,j  )     * py(i  ,j  ,k  ) & ! ijk
+               - beta(i  ,j)   * dyv(i  ,j+1)     * py(i  ,j+1,k  )   ! ijk
+       enddo
+    enddo
 
-          do k = 2,nz-1 
-             du(k,j,i) = Arx(k,j,i) * px(k,j,i) &
+    do k = 2,nz-1 
+       do j = 1,ny      ! ijk
+          do i = 1,nx+1 ! ijk  
+             du(i,j,k) = Arx(i,j,k) * px(i,j,k) & ! ijk
                   - qrt * ( &
-                  + zxdy(k,j,i  ) * dzw(k  ,j,i  ) * pz(k  ,j,i  ) &
-                  + zxdy(k,j,i  ) * dzw(k+1,j,i  ) * pz(k+1,j,i  ) &
-                  + zxdy(k,j,i-1) * dzw(k  ,j,i-1) * pz(k  ,j,i-1) &
-                  + zxdy(k,j,i-1) * dzw(k+1,j,i-1) * pz(k+1,j,i-1) )
+                  + zxdy(i  ,j,k) * dzw(i  ,j,k  ) * pz(i  ,j,k  ) & ! ijk
+                  + zxdy(i  ,j,k) * dzw(i  ,j,k+1) * pz(i  ,j,k+1) & ! ijk
+                  + zxdy(i-1,j,k) * dzw(i-1,j,k  ) * pz(i-1,j,k  ) & ! ijk
+                  + zxdy(i-1,j,k) * dzw(i-1,j,k+1) * pz(i-1,j,k+1) ) ! ijk
           enddo
+       enddo
+    enddo
 
-          k = nz
-          du(k,j,i) = Arx(k,j,i) * px(k,j,i) &
+    k = nz
+    do j = 1,ny      ! ijk
+       do i = 1,nx+1 ! ijk  
+          du(i,j,k) = Arx(i,j,k) * px(i,j,k) & ! ijk
                - qrt * ( &
-               + zxdy(k,j,i  ) *       dzw(k  ,j,i  ) * pz(k  ,j,i  ) &
-               + zxdy(k,j,i  ) * two * dzw(k+1,j,i  ) * pz(k+1,j,i  ) &
-               + zxdy(k,j,i-1) *       dzw(k  ,j,i-1) * pz(k  ,j,i-1) &
-               + zxdy(k,j,i-1) * two * dzw(k+1,j,i-1) * pz(k+1,j,i-1) )
+               + zxdy(i  ,j,k) *       dzw(i  ,j,k  ) * pz(i  ,j,k  ) & ! ijk
+               + zxdy(i  ,j,k) * two * dzw(i  ,j,k+1) * pz(i  ,j,k+1) & ! ijk
+               + zxdy(i-1,j,k) *       dzw(i-1,j,k  ) * pz(i-1,j,k  ) & ! ijk
+               + zxdy(i-1,j,k) * two * dzw(i-1,j,k+1) * pz(i-1,j,k+1) ) ! ijk
        enddo
     enddo
 
@@ -378,37 +402,45 @@ contains
 
     dv => grid(1)%dv
 
-    do i = 1,nx
-       do j = 1,ny+1
-          k = 1
+    k = 1
+    do j = 1,ny+1  ! ijk
+       do i = 1,nx ! ijk
           gamma = one - qrt * (  &
-               (zydx(k,j  ,i)/dx(j  ,i))**2/alpha(k,j  ,i  ) + &
-               (zydx(k,j-1,i)/dx(j-1,i))**2/alpha(k,j-1,i) )
-          dv(k,j,i) = gamma * Ary(k,j,i) * py(k,j,i) &
+               (zydx(i,j  ,k)/dx(i,j  ))**2/alpha(i,j  ,k) + & ! ijk
+               (zydx(i,j-1,k)/dx(i,j-1))**2/alpha(i,j-1,k) ) ! ijk
+          dv(i,j,k) = gamma * Ary(i,j,k) * py(i,j,k) & ! ijk
                - qrt * ( &
-               + zydx(k,j  ,i) * dzw(k+1,j  ,i) * pz(k+1,j  ,i) &
-               + zydx(k,j-1,i) * dzw(k+1,j-1,i) * pz(k+1,j-1,i) ) &
-               - beta(j-1,i)   * dxu(j-1,i  )   * px(k,j-1,i  ) &
-               - beta(j-1,i)   * dxu(j-1,i+1)   * px(k,j-1,i+1) &
-               - beta(j  ,i)   * dxu(j  ,i  )   * px(k,j  ,i  ) &
-               - beta(j  ,i)   * dxu(j  ,i+1)   * px(k,j  ,i+1)
+               + zydx(i,j  ,k) * dzw(i  ,j  ,k+1) * pz(i  ,j  ,k+1) & ! ijk
+               + zydx(i,j-1,k) * dzw(i  ,j-1,k+1) * pz(i  ,j-1,k+1) ) & ! ijk
+               - beta(i,j-1)   * dxu(i  ,j-1)     * px(i  ,j-1,k  ) & ! ijk
+               - beta(i,j-1)   * dxu(i+1,j-1)     * px(i+1,j-1,k  ) & ! ijk
+               - beta(i,j  )   * dxu(i  ,j  )     * px(i  ,j  ,k  ) & ! ijk
+               - beta(i,j  )   * dxu(i+1,j  )     * px(i+1,j  ,k  )   ! ijk
+       enddo
+    enddo
 
-          do k = 2,nz-1
-             dv(k,j,i) =  Ary(k,j,i) * py(k,j,i) &
+    do k = 2,nz-1
+       do j = 1,ny+1  ! ijk
+          do i = 1,nx ! ijk
+             dv(i,j,k) =  Ary(i,j,k) * py(i,j,k) & ! ijk
                   - qrt * ( &
-                  + zydx(k,j  ,i) * dzw(k  ,j  ,i) * pz(k  ,j  ,i) &
-                  + zydx(k,j  ,i) * dzw(k+1,j  ,i) * pz(k+1,j  ,i) &
-                  + zydx(k,j-1,i) * dzw(k  ,j-1,i) * pz(k  ,j-1,i) &
-                  + zydx(k,j-1,i) * dzw(k+1,j-1,i) * pz(k+1,j-1,i) )
+                  + zydx(i,j  ,k) * dzw(i,j  ,k  ) * pz(i,j  ,k  ) & ! ijk
+                  + zydx(i,j  ,k) * dzw(i,j  ,k+1) * pz(i,j  ,k+1) & ! ijk
+                  + zydx(i,j-1,k) * dzw(i,j-1,k  ) * pz(i,j-1,k  ) & ! ijk
+                  + zydx(i,j-1,k) * dzw(i,j-1,k+1) * pz(i,j-1,k+1) ) ! ijk
           enddo
+       enddo
+    enddo
 
-          k = nz
-          dv(k,j,i) = Ary(k,j,i) * py(k,j,i) &
+    k = nz
+    do j = 1,ny+1  ! ijk
+       do i = 1,nx ! ijk
+          dv(i,j,k) = Ary(i,j,k) * py(i,j,k) & ! ijk
                - qrt * ( &
-               + zydx(k,j  ,i)       * dzw(k  ,j  ,i) * pz(k  ,j  ,i) &
-               + zydx(k,j  ,i) * two * dzw(k+1,j  ,i) * pz(k+1,j  ,i) &
-               + zydx(k,j-1,i)       * dzw(k  ,j-1,i) * pz(k  ,j-1,i) &
-               + zydx(k,j-1,i) * two * dzw(k+1,j-1,i) * pz(k+1,j-1,i) ) 
+               + zydx(i,j  ,k)       * dzw(i,j  ,k  ) * pz(i,j  ,k  ) & ! ijk
+               + zydx(i,j  ,k) * two * dzw(i,j  ,k+1) * pz(i,j  ,k+1) & ! ijk
+               + zydx(i,j-1,k)       * dzw(i,j-1,k  ) * pz(i,j-1,k  ) & ! ijk
+               + zydx(i,j-1,k) * two * dzw(i,j-1,k+1) * pz(i,j-1,k+1) ) ! ijk
 
        enddo
     enddo
@@ -417,31 +449,34 @@ contains
 
     dw => grid(1)%dw
 
-    do i = 1,nx
-       do j = 1,ny
-
-          do k = 2,nz
-             dw(k,j,i) =  hlf * (alpha(k-1,j,i) + alpha(k,j,i)) * Arz(j,i) * pz(k,j,i) &
+    do k = 2,nz
+       do j = 1,ny    ! ijk
+          do i = 1,nx ! ijk
+             dw(i,j,k) =  hlf * (alpha(i,j,k-1) + alpha(i,j,k)) * Arz(i,j) * pz(i,j,k) & ! ijk
                   - qrt * ( &
-                  + zxdy(k  ,j,i) * dxu(j,i  ) * px(k  ,j,i  ) &
-                  + zxdy(k  ,j,i) * dxu(j,i+1) * px(k  ,j,i+1) &
-                  + zxdy(k-1,j,i) * dxu(j,i  ) * px(k-1,j,i  ) &
-                  + zxdy(k-1,j,i) * dxu(j,i+1) * px(k-1,j,i+1) ) &
+                  + zxdy(i,j,k  ) * dxu(i  ,j) * px(i  ,j,k  ) & ! ijk
+                  + zxdy(i,j,k  ) * dxu(i+1,j) * px(i+1,j,k  ) & ! ijk
+                  + zxdy(i,j,k-1) * dxu(i  ,j) * px(i  ,j,k-1) & ! ijk
+                  + zxdy(i,j,k-1) * dxu(i+1,j) * px(i+1,j,k-1) ) & ! ijk
                   - qrt * ( &
-                  + zydx(k  ,j,i) * dyv(j  ,i) * py(k  ,j  ,i) &
-                  + zydx(k  ,j,i) * dyv(j+1,i) * py(k  ,j+1,i) &
-                  + zydx(k-1,j,i) * dyv(j  ,i) * py(k-1,j  ,i) &
-                  + zydx(k-1,j,i) * dyv(j+1,i) * py(k-1,j+1,i) )
+                  + zydx(i,j,k  ) * dyv(i,j  ) * py(i,j  ,k  ) & ! ijk
+                  + zydx(i,j,k  ) * dyv(i,j+1) * py(i,j+1,k  ) & ! ijk
+                  + zydx(i,j,k-1) * dyv(i,j  ) * py(i,j  ,k-1) & ! ijk
+                  + zydx(i,j,k-1) * dyv(i,j+1) * py(i,j+1,k-1) ) ! ijk
           enddo
+       enddo
+    enddo
 
-          k = nz+1 
-          dw(k,j,i) = alpha(k-1,j,i) * Arz(j,i) * pz(k,j,i) &
+    k = nz+1 
+    do j = 1,ny    ! ijk
+       do i = 1,nx ! ijk
+          dw(i,j,k) = alpha(i,j,k-1) * Arz(i,j) * pz(i,j,k) & ! ijk
                - hlf * ( &
-               + zxdy(k-1,j,i) * dxu(j,i  ) * px(k-1,j,i  ) &
-               + zxdy(k-1,j,i) * dxu(j,i+1) * px(k-1,j,i+1) ) &
+               + zxdy(i,j,k-1) * dxu(i  ,j) * px(i  ,j,k-1) & ! ijk
+               + zxdy(i,j,k-1) * dxu(i+1,j) * px(i+1,j,k-1) ) & ! ijk
                - hlf * ( &
-               + zydx(k-1,j,i) * dyv(j  ,i) * py(k-1,j  ,i) &
-               + zydx(k-1,j,i) * dyv(j+1,i) * py(k-1,j+1,i) )
+               + zydx(i,j,k-1) * dyv(i,j  ) * py(i,j  ,k-1) & ! ijk
+               + zydx(i,j,k-1) * dyv(i,j+1) * py(i,j+1,k-1) ) ! ijk
        enddo
     enddo
 

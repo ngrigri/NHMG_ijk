@@ -41,7 +41,7 @@ contains
 
     integer(kind=ip) :: i,j,k
 
-!    if (myrank==0) write(*,*)'   - set vertical grids:'
+    !    if (myrank==0) write(*,*)'   - set vertical grids:'
 
     do lev = 1, nlevs
 
@@ -53,8 +53,8 @@ contains
 
        if (lev == 1) then ! zr,dz from croco
 
-          grid(lev)%zr(1:nz,0:ny+1,0:nx+1) = z_r !only 1 extra point ??????????
-          grid(lev)%dz(1:nz,0:ny+1,0:nx+1) = Hz !only 1 extra point ??????????
+          grid(lev)%zr(0:nx+1,0:ny+1,1:nz) = z_r !only 1 extra point ?????????? ! ijk
+          grid(lev)%dz(0:nx+1,0:ny+1,1:nz) = Hz  !only 1 extra point ?????????? ! ijk
 
        else               ! coarsen zr,dz (needed when directly discretizing on coarser grids)
 
@@ -69,8 +69,8 @@ contains
              nxc = nx/grid(lev)%ngx
              nyc = ny/grid(lev)%ngy
              nzc = nz
-             allocate(zrc(1:nzc,0:nyc+1,0:nxc+1))
-             allocate(dzc(1:nzc,0:nyc+1,0:nxc+1))
+             allocate(zrc(0:nxc+1,0:nyc+1,1:nzc)) ! ijk
+             allocate(dzc(0:nxc+1,0:nyc+1,1:nzc)) ! ijk
           else
              nxc = nx
              nyc = ny
@@ -80,26 +80,26 @@ contains
           endif
 
           ! Call fine2coarse
-          zrc(1:nzc,1:nyc,1:nxc) = eighth * (       & !only interior points ?????????? 
-               zrf(1:nzf  :2,1:nyf  :2,1:nxf  :2) + &
-               zrf(1:nzf  :2,2:nyf+1:2,1:nxf  :2) + &
-               zrf(1:nzf  :2,1:nyf  :2,2:nxf+1:2) + &
-               zrf(1:nzf  :2,2:nyf+1:2,2:nxf+1:2) + &
-               zrf(2:nzf+1:2,1:nyf  :2,1:nxf  :2) + &
-               zrf(2:nzf+1:2,2:nyf+1:2,1:nxf  :2) + &
-               zrf(2:nzf+1:2,1:nyf  :2,2:nxf+1:2) + &
-               zrf(2:nzf+1:2,2:nyf+1:2,2:nxf+1:2) )
+          zrc(1:nxc,1:nyc,1:nzc) = eighth * (       & !only interior points ??????????  ! ijk
+               zrf(1:nxf  :2,1:nyf  :2,1:nzf  :2) + & ! ijk
+               zrf(1:nxf  :2,2:nyf+1:2,1:nzf  :2) + & ! ijk
+               zrf(2:nxf+1:2,1:nyf  :2,1:nzf  :2) + & ! ijk
+               zrf(2:nxf+1:2,2:nyf+1:2,1:nzf  :2) + & ! ijk
+               zrf(1:nxf  :2,1:nyf  :2,2:nzf+1:2) + & ! ijk
+               zrf(1:nxf  :2,2:nyf+1:2,2:nzf+1:2) + & ! ijk
+               zrf(2:nxf+1:2,1:nyf  :2,2:nzf+1:2) + & ! ijk
+               zrf(2:nxf+1:2,2:nyf+1:2,2:nzf+1:2) )   ! ijk
 
           ! Call fine2coarse
-          dzc(1:nzc,1:nyc,1:nxc) = 2._rp * eighth * (        & !only interior points ?????????? 
-               dzf(1:nzf  :2,1:nyf  :2,1:nxf  :2) + &
-               dzf(1:nzf  :2,2:nyf+1:2,1:nxf  :2) + &
-               dzf(1:nzf  :2,1:nyf  :2,2:nxf+1:2) + &
-               dzf(1:nzf  :2,2:nyf+1:2,2:nxf+1:2) + &
-               dzf(2:nzf+1:2,1:nyf  :2,1:nxf  :2) + &
-               dzf(2:nzf+1:2,2:nyf+1:2,1:nxf  :2) + &
-               dzf(2:nzf+1:2,1:nyf  :2,2:nxf+1:2) + &
-               dzf(2:nzf+1:2,2:nyf+1:2,2:nxf+1:2) )
+          dzc(1:nxc,1:nyc,1:nzc) = 2._rp * eighth * (        & !only interior points ?????????? ! ijk
+               dzf(1:nxf  :2,1:nyf  :2,1:nzf  :2) + & ! ijk
+               dzf(1:nxf  :2,2:nyf+1:2,1:nzf  :2) + & ! ijk
+               dzf(2:nxf+1:2,1:nyf  :2,1:nzf  :2) + & ! ijk
+               dzf(2:nxf+1:2,2:nyf+1:2,1:nzf  :2) + & ! ijk
+               dzf(1:nxf  :2,1:nyf  :2,2:nzf+1:2) + & ! ijk
+               dzf(1:nxf  :2,2:nyf+1:2,2:nzf+1:2) + & ! ijk
+               dzf(2:nxf+1:2,1:nyf  :2,2:nzf+1:2) + & ! ijk
+               dzf(2:nxf+1:2,2:nyf+1:2,2:nzf+1:2) )   ! ijk
 
           if (grid(lev)%gather == 1) then
              call gather(lev,zrc,grid(lev)%zr)
@@ -120,8 +120,8 @@ contains
 
        !! compute derived qties
 
-       dx => grid(lev)%dx
-       dy => grid(lev)%dy
+       dx    => grid(lev)%dx
+       dy    => grid(lev)%dy
        zr    => grid(lev)%zr
        dz    => grid(lev)%dz
 
@@ -137,43 +137,54 @@ contains
        gamv  => grid(lev)%gamv
 
        !! Cell height 
-       do i = 0,nx+1
-          do j = 0,ny+1
-             dzw(1,j,i) = hlf * dz(1,j,i)
-             do k = 2,nz
-                dzw(k,j,i) = hlf * (dz(k-1,j,i) + dz(k,j,i))
-             enddo
-             dzw(nz+1,j,i) = hlf * dz(nz,j,i)
+       do j = 0,ny+1                      ! ijk
+          do i = 0,nx+1                   ! ijk
+             dzw(i,j,1) = hlf * dz(i,j,1) ! ijk
+          enddo                           ! ijk
+       enddo                              ! ijk
+       do k = 2,nz
+          do j = 0,ny+1                   ! ijk
+             do i = 0,nx+1                ! ijk
+                dzw(i,j,k) = hlf * (dz(i,j,k-1) + dz(i,j,k)) ! ijk
+             enddo                        ! ijk
+          enddo                           ! ijk
+       enddo
+       do j = 0,ny+1                      ! ijk
+          do i = 0,nx+1                   ! ijk
+             dzw(i,j,nz+1) = hlf * dz(i,j,nz) ! ijk
           enddo
        enddo
 
        !!  Cell faces area
-       do i = 1,nx+1
-          do j = 0,ny+1
-             do k = 1,nz
-                Arx(k,j,i) = hlf * ( dy(j,i) * dz(k,j,i) + dy(j,i-1) * dz(k,j,i-1) )
+
+       do k = 1,nz         ! ijk
+          do j = 0,ny+1    ! ijk
+             do i = 1,nx+1 ! ijk
+                Arx(i,j,k) = hlf * ( dy(i,j) * dz(i,j,k) + dy(i-1,j) * dz(i-1,j,k) ) ! ijk
              enddo
-          enddo
-       enddo
-       do i = 0,nx+1
-          do j = 1,ny+1
-             do k = 1,nz
-                Ary(k,j,i) = hlf * ( dx(j,i) * dz(k,j,i) + dx(j-1,i) * dz(k,j-1,i) )
-             enddo
-          enddo
-       enddo
-       do i = 0,nx+1
-          do j = 1,ny+1
-             Arz(j,i) = dx(j,i) * dy(j,i)
           enddo
        enddo
 
-       !! Slopes
-       do i = 0,nx+1        ! We need zr with 2 halo points !
-          do j = 0,ny+1     !
-             do k = 1, nz
-                zxdy(k,j,i) = hlf * (( zr(k,j  ,i+1) - zr(k,j  ,i-1) ) / dx(j,i) ) * dy(j,i)
-                zydx(k,j,i) = hlf * (( zr(k,j+1,i  ) - zr(k,j-1,i  ) ) / dy(j,i) ) * dx(j,i)
+       do k = 1,nz         ! ijk
+          do j = 1,ny+1    ! ijk
+             do i = 0,nx+1 ! ijk
+                Ary(i,j,k) = hlf * ( dx(i,j) * dz(i,j,k) + dx(i,j-1) * dz(i,j-1,k) ) ! ijk
+             enddo
+          enddo
+       enddo
+
+       do j = 1,ny+1    ! ijk
+          do i = 0,nx+1 ! ijk
+             Arz(i,j) = dx(i,j) * dy(i,j) ! ijk
+          enddo
+       enddo
+
+       !! Slopes! We need zr with 2 halo points !
+       do k = 1, nz        ! ijk
+          do j = 0,ny+1    ! ijk 
+             do i = 0,nx+1 ! ijk      
+                zxdy(i,j,k) = hlf * (( zr(i+1,j  ,k) - zr(i-1,j  ,k) ) / dx(i,j) ) * dy(i,j) ! ijk
+                zydx(i,j,k) = hlf * (( zr(i  ,j+1,k) - zr(i  ,j-1,k) ) / dy(i,j) ) * dx(i,j) ! ijk
              enddo
           enddo
        enddo
@@ -182,29 +193,29 @@ contains
        call set_phybound2zero(lev,zydx,gt='v')
 
        !!- Used in set_matrices and fluxes
-       do i = 0,nx+1
-          do j = 0,ny+1
-             do k = 1, nz
-                alpha(k,j,i) = one + (zxdy(k,j,i)/dy(j,i))**2 + (zydx(k,j,i)/dx(j,i))**2
+       do k = 1, nz        ! ijk
+          do j = 0,ny+1    ! ijk 
+             do i = 0,nx+1 ! ijk    
+                alpha(i,j,k) = one + (zxdy(i,j,k)/dy(i,j))**2 + (zydx(i,j,k)/dx(i,j))**2 ! ijk
              enddo
           enddo
        enddo
 
-       do i = 0,nx+1
-          do j = 0,ny+1
-             gamu(j,i) = one - hlf * ( zxdy(1,j,i) / dy(j,i) )**2 / alpha(1,j,i) 
+       do j = 0,ny+1    ! ijk
+          do i = 0,nx+1 ! ijk
+             gamu(i,j) = one - hlf * ( zxdy(i,j,1) / dy(i,j) )**2 / alpha(i,j,1) ! ijk
           enddo
        enddo
 
-       do i = 0,nx+1
-          do j = 0,ny+1
-             gamv(j,i) = one - hlf * ( zydx(1,j,i) / dx(j,i) )**2 / alpha(1,j,i) 
+       do j = 0,ny+1    ! ijk
+          do i = 0,nx+1 ! ijk
+             gamv(i,j) = one - hlf * ( zydx(i,j,1) / dx(i,j) )**2 / alpha(i,j,1) ! ijk
           enddo
        enddo
 
-       do i = 0,nx+1
-          do j = 0,ny+1
-             beta(j,i) = eighth * zxdy(1,j,i)/dy(j,i) * zydx(1,j,i)/dx(j,i) * dz(1,j,i) / alpha(1,j,i)
+       do j = 0,ny+1    ! ijk
+          do i = 0,nx+1 ! ijk
+             beta(i,j) = eighth * zxdy(i,j,1)/dy(i,j) * zydx(i,j,1)/dx(i,j) * dz(i,j,1) / alpha(i,j,1) ! ijk
           enddo
        end do
 
