@@ -222,7 +222,8 @@ program mg_testseamount
      !--------------------!
      !- Call nhmg solver -!
      !--------------------!
-!     call nhmg_solve(nx,ny,nz,u,v,w)
+     call nhmg_solve(u,v,w,Hz,.false.)
+
 
      if (netcdf_output) then
         call write_netcdf(u,vname='uc',netcdf_file_name='uc.nc',rank=rank,iter=it)

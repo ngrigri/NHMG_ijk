@@ -65,47 +65,58 @@ contains
     zydx  => grid(1)%zydx
 
 !!! dirty reshape arrays indexing ijk -> kji !!!
-    allocate(rub(1:nz,0:ny+1,0:nx+1))
-    allocate(rvb(1:nz,0:ny+1,0:nx+1))
-    do i = 1,nx+1
-      do j = 0,ny+1
-        do k = 1,nz
-          rub(k,j,i) = rua(i,j,k)
-        enddo
-      enddo
+    allocate(rub(0:nx+1,0:ny+1,1:nz)) ! ijk
+    allocate(rvb(0:nx+1,0:ny+1,1:nz)) ! ijk
+    do k = 1,nz
+       do j = 0,ny+1
+          do i = 1,nx+1
+             rub(i,j,k) = rua(i,j,k)
+          enddo
+       enddo
     enddo
-    do i = 0,nx+1
-      do j = 1,ny+1
-        do k = 1,nz
-           rvb(k,j,i) = rva(i,j,k)
-        enddo
-      enddo
+    do k = 1,nz
+       do j = 1,ny+1
+          do i = 0,nx+1
+             rvb(i,j,k) = rva(i,j,k)
+          enddo
+       enddo
     enddo
     ru => rub
     rv => rvb
-    call fill_halo(1,ru)
-    call fill_halo(1,rv)
+    call fill_halo(1,ru)    ! ijk pb here !!
+    call fill_halo(1,rv)    ! ijk pb here !!
 !!! 
     rw => rwa
 
     !XXXXXXXXXXXXXXXXXXXXXXXXX
     !care with dz. properly updated?
 
-    do i = 1,nx
-       do j = 1,ny
-          do k = 1,nz
-             dzdhp(k) = zxdy(k,j,i)/dy(j,i)*(               &
-                  ru(k,j,i  )/(dz(k,j,i) + dz(k,j,i-1))     &
-                  + ru(k,j,i+1)/(dz(k,j,i) + dz(k,j,i+1)) ) &
-                  + zydx(k,j,i)/dx(j,i)*(                   &
-                  rv(k,j  ,i)/(dz(k,j,i) + dz(k,j-1,i))     &
-                  + rv(k,j+1,i)/(dz(k,j,i) + dz(k,j+1,i)) )
+    do k = 1,nz       ! ijk
+       do j = 1,ny    ! ijk
+          do i = 1,nx ! ijk
+
+             dzdhp(k) = zxdy(i,j,k)/dy(i,j)*(               & ! ijk
+                  + ru(i  ,j,k)/(dz(i,j,k) + dz(i-1,j,k))   & ! ijk
+                  + ru(i+1,j,k)/(dz(i,j,k) + dz(i+1,j,k)) ) & ! ijk
+                  + zydx(i,j,k)/dx(i,j)*(                   & ! ijk
+                  + rv(i,j  ,k)/(dz(i,j,k) + dz(i,j-1,k))   & ! ijk
+                  + rv(i,j+1,k)/(dz(i,j,k) + dz(i,j+1,k)) )   ! ijk
           enddo
-          do k = 2,nz
-             rw(i,j,k) =  - 0.5*( dzdhp(k) + dzdhp(k-1) ) &
-                          * 0.5*( dz(k,j,i) + dz(k-1,j,i) )
+       enddo
+    enddo
+
+    do k = 2,nz
+       do j = 1,ny    ! ijk
+          do i = 1,nx ! ijk
+             rw(i,j,k) =  - 0.5*( dzdhp(k) + dzdhp(k-1) ) & ! ijk
+                  * 0.5*( dz(i,j,k) + dz(i,j,k-1) )         ! ijk
           enddo
-          rw(i,j,nz+1) =  - dzdhp(nz) *0.5*dz(nz,j,i)
+       enddo
+    enddo
+
+    do j = 1,ny    ! ijk
+       do i = 1,nx ! ijk
+          rw(i,j,nz+1) =  - dzdhp(nz) *0.5*dz(i,j,nz) ! ijk
        enddo
     enddo
 
@@ -131,23 +142,24 @@ contains
 
 !!! dirty reshape arrays indexing ijk -> kji !!!
     integer(kind=ip) :: i,j,k
-    real(kind=rp), dimension(1:nz,0:ny+1,0:nx+1), target :: zrb
-    real(kind=rp), dimension(1:nz,0:ny+1,0:nx+1), target :: Hzb 
-    real(kind=rp), dimension(0:ny+1,0:nx+1),      target :: dxb,dyb
+    real(kind=rp), dimension(0:nx+1,0:ny+1,1:nz), target :: zrb     ! ijk
+    real(kind=rp), dimension(0:nx+1,0:ny+1,1:nz), target :: Hzb     ! ijk
+    real(kind=rp), dimension(0:nx+1,0:ny+1),      target :: dxb,dyb ! ijk
 !!!
 
     integer(kind=ip), save :: iter_matrices=0
     iter_matrices = iter_matrices + 1
 
-!    if (myrank==0) write(*,*)' nhmg_matrices: ',iter_matrices
+    !    if (myrank==0) write(*,*)' nhmg_matrices: ',iter_matrices
 
     !--------------------!
     !- Horizontal grids -!
     !--------------------!
     if (present(dxa) .and. present(dya)) then
 
-       dxb = transpose(dxa)
-       dyb = transpose(dya)
+       dxb = dxa ! ijk
+       dyb = dya ! ijk
+
        dx => dxb
        dy => dyb
 
@@ -167,11 +179,11 @@ contains
     !- Vertical grids -!
     !------------------!
 !!! dirty reshape arrays indexing ijk -> kji !!!
-    do i = 0,nx+1
-       do j = 0,ny+1
-          do k = 1,nz
-             zrb(k,j,i) = zra(i,j,k)
-             Hzb(k,j,i) = Hza(i,j,k)
+    do k = 1,nz         ! ijk
+       do j = 0,ny+1    ! ijk
+          do i = 0,nx+1 ! ijk
+             zrb(i,j,k) = zra(i,j,k) ! ijk
+             Hzb(i,j,k) = Hza(i,j,k) ! ijk
           enddo
        enddo
     enddo
@@ -216,7 +228,7 @@ contains
     real(kind=rp), dimension(:,:),   pointer :: dx,dy
     real(kind=rp), dimension(:,:,:), pointer :: u,v,w,dz
 
-    integer(kind=ip) :: i,j,k,is,js
+    integer(kind=ip) :: i,j,k,is,js,ishift
     integer(kind=ip) :: nx,ny,nz
 
     integer(kind=ip), save :: iter_solve=0
@@ -242,12 +254,15 @@ contains
 
     ! need to update dz because define_matrices may not be called every time step
     dz => grid(1)%dz
+
+    ishift = 1
+
     do k=1,nz
        do j=0,ny+1
-          js=j+2 
+          js = j+ishift
           do i=0,nx+1
-             is=i+2
-             dz(k,j,i) = Hza(is,js,k)
+             is = i+ishift
+             dz(i,j,k) = Hza(is,js,k) ! ijk
           enddo
        enddo
     enddo
@@ -259,31 +274,31 @@ contains
     ! set fluxes
     do k=1,nz
        do j=1,ny
-          js=j+2
+          js=j+ishift
           do i=1,nx+1
-             is=i+2
-             u(k,j,i) = ua(is,js,k) * &
-                  qrt * (dz(k,j,i) + dz(k,j,i-1)) * (dy(j,i)+dy(j,i-1))
+             is=i+ishift
+             u(i,j,k) = ua(is,js,k) * &                                 ! ijk
+                  qrt * (dz(i,j,k) + dz(i-1,j,k)) * (dy(i,j)+dy(i-1,j)) ! ijk
           enddo          
        enddo
        do j=1,ny+1
-          js=j+2
+          js=j+ishift
           do i=1,nx
-             is=i+2
-             v(k,j,i) = va(is,js,k) * &
-                  qrt * (dz(k,j,i) + dz(k,j-1,i)) * (dx(j,i)+dx(j-1,i))
+             is=i+ishift
+             v(i,j,k) = va(is,js,k) * &                                 ! ijk
+                  qrt * (dz(i,j,k) + dz(i,j-1,k)) * (dx(i,j)+dx(i,j-1)) ! ijk
           enddo
        enddo
        do j=1,ny
-          js=j+2
+          js=j+ishift
           do i=1,nx
-             is=i+2
-             w(k+1,j,i) = wa(is,js,k+1) * &
-                  dx(j,i) * dy(j,i)
+             is=i+ishift
+             w(i,j,k+1) = wa(is,js,k+1) * & ! ijk
+                  dx(i,j) * dy(i,j)         ! ijk
           enddo
        enddo
     enddo
-    w(1,:,:) = zero
+    w(:,:,1) = zero ! ijk
 
     !- set rhs and solve for p
     call set_rhs()
