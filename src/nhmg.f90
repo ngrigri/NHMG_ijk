@@ -255,7 +255,7 @@ contains
     ! need to update dz because define_matrices may not be called every time step
     dz => grid(1)%dz
 
-    ishift = 1
+    ishift = 2
 
     do k=1,nz
        do j=0,ny+1
@@ -330,12 +330,6 @@ contains
        call write_netcdf(grid(1)%b,vname='bout',netcdf_file_name='so.nc',rank=myrank,iter=iter_solve)
        !endif
     endif
-
-    !- check step - the projected u,v,w do not work
-
-!    if (associated(u)) u => null()
-!    if (associated(v)) v => null()
-!    if (associated(w)) w => null()
 
     call toc(1,'nhmg_solve')
 
