@@ -1,2 +1,0 @@
-BASE_SUBDIRS= matlab
-SUBDIRS		= $(BASE_SUBDIRS)
