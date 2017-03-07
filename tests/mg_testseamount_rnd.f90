@@ -43,6 +43,8 @@ program mg_testseamount
   integer(kind=ip)  :: lun_nml = 4
   logical :: nml_exist=.false.
 
+  integer(kind=ip)  :: is
+
   namelist/tsparam/ &
        nit        , &
        nxg        , &
@@ -123,16 +125,18 @@ program mg_testseamount
      write(*,'(A,3(x,F12.2))')'    - hc, theta_b, theta_s:', hc, theta_b, theta_s
   endif
 
-  allocate(    h(0:nx+1,0:ny+1))
-  allocate( zeta(0:nx+1,0:ny+1))
+  is= 2
 
-  allocate(  dx (0:nx+1,0:ny+1))
-  allocate(  dy (0:nx+1,0:ny+1))
-  allocate(  dxu(0:nx+1,0:ny+1))
-  allocate(  dyv(0:nx+1,0:ny+1))
+  allocate(    h(1-is:nx+is,1-is:ny+is))
+  allocate( zeta(1-is:nx+is,1-is:ny+is))
 
-  allocate(   z_r(0:nx+1,0:ny+1,1:nz))
-  allocate(   Hz (0:nx+1,0:ny+1,1:nz))
+  allocate(  dx (1-is:nx+is,1-is:ny+is))
+  allocate(  dy (1-is:nx+is,1-is:ny+is))
+  allocate(  dxu(1-is:nx+is,1-is:ny+is))
+  allocate(  dyv(1-is:nx+is,1-is:ny+is))
+
+  allocate(   z_r(1-is:nx+is,1-is:ny+is,1:nz))
+  allocate(   Hz (1-is:nx+is,1-is:ny+is,1:nz))
 
   call setup_seamount(  &
        nx,ny,npxg,npyg, &
@@ -145,16 +149,16 @@ program mg_testseamount
   !- linear vertical grid -!
   !  call setup_zr_hz(h,z_r,Hz)
 
-  call nhmg_matrices(nx,ny,nz,z_r,Hz,dx,dy)
+  call nhmg_matrices(nx,ny,nz,z_r(0:nx+1,0:ny+1,1:nz),Hz(0:nx+1,0:ny+1,1:nz),dx,dy)
 
   !-------------------------------------!
   !- U,V,W initialisation (model vars) -!
   !-------------------------------------!
   if (rank == 0) write(*,*)' Allocate u, v, w'
 
-  allocate(u(0:nx+1,0:ny+1,1:nz))
-  allocate(v(0:nx+1,0:ny+1,1:nz))
-  allocate(w(0:nx+1,0:ny+1,0:nz))
+  allocate(u(1-is:nx+is,1-is:ny+is,1:nz))
+  allocate(v(1-is:nx+is,1-is:ny+is,1:nz))
+  allocate(w(1-is:nx+is,1-is:ny+is,0:nz))
 
   up => u
   vp => v
@@ -215,6 +219,7 @@ program mg_testseamount
      !--------------------!
      !- Call nhmg solver -!
      !--------------------!
+     grid(1)%p = zero ! NG because it is commented in nhmg_solve
      call nhmg_solve(u,v,w,Hz,.true.)
 
      if (netcdf_output) then
