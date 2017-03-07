@@ -165,14 +165,15 @@ contains
     real(kind=rp),dimension(:,:,:,:), pointer, intent(in)   :: cA
 
     !- Local -!
-    integer(kind=ip) :: i,j,k,it
-    integer(kind=ip) :: is
+    integer(kind=ip) :: i,j,it
     integer(kind=ip) :: rb
 
+    real(kind=rp),dimension(nx,ny,nz) :: gam
+    real(kind=rp),dimension(nx,ny,nz)    :: bet
+
+    integer(kind=ip) :: k
     real(kind=rp)    :: rhs
-    real(kind=rp),dimension(nx/2,ny,nz) :: gam ! nx has to be divisible by 2
-    real(kind=rp),dimension(nx/2,ny,nz) :: bet ! nx has to be divisible by 2
-    real(kind=rp),dimension(nx/2,ny,nz) :: p2  ! nx has to be divisible by 2
+    real(kind=rp), dimension(nx,ny,nz) :: p2
 
     call tic(lev,'relax_3D_8_RB')
 
@@ -193,7 +194,6 @@ contains
 
           k=1 !lower level
           do j = 1, ny
-             is = 0
              do i = 1+mod(j+rb,2),nx,2
 
                 rhs  = b(i,j,k)                                                          & ! ijk
@@ -211,16 +211,14 @@ contains
                         - cA(8,i,j,k) * p(i-1,j-1,k) - cA(8,i+1,j+1,k) * p(i+1,j+1,k)    ! ijk
                 endif
 
-                is = is+1
-                bet(is,j,k) = one / cA(1,i,j,k) ! k=1
-                p2 (is,j,k) = rhs * bet(is,j,k) ! k=1
+                bet(i,j,k) = one / cA(1,i,j,k)! k=1
+                p2(i,j,k)  = rhs * bet(i,j,k) ! k=1
 
              enddo ! i
           enddo  ! j
 
           do k=2,nz-1
              do j = 1, ny
-                is = 0
                 do i = 1+mod(j+rb,2),nx,2
 
                    rhs  = b(i,j,k)                                                          & ! ijk
@@ -231,10 +229,9 @@ contains
                         - cA(7,i,j,k) * p(i-1,j  ,k  ) - cA(7,i+1,j  ,k  ) * p(i+1,j  ,k  ) & ! ijk
                         - cA(8,i,j,k) * p(i-1,j,  k-1) - cA(8,i+1,j  ,k+1) * p(i+1,j  ,k+1)   ! ijk
 
-                   is = is+1
-                   gam(is,j,k) = cA(2,i,j,k) * bet(is,j,k-1)
-                   bet(is,j,k) = one / ( cA(1,i,j,k) - cA(2,i,j,k) * gam(is,j,k) )
-                   p2 (is,j,k) = ( rhs - cA(2,i,j,k) * p2(is,j,k-1) ) * bet(is,j,k)
+                   gam(i,j,k) = cA(2,i,j,k) * bet(i,j,k-1)
+                   bet(i,j,k) = one / ( cA(1,i,j,k) - cA(2,i,j,k) * gam(i,j,k) )
+                   p2(i,j,k)  = ( rhs - cA(2,i,j,k) * p2(i,j,k-1) ) * bet(i,j,k)
 
                 enddo ! i
              enddo ! j
@@ -242,7 +239,6 @@ contains
 
           k=nz !upper level
           do j = 1, ny
-             is = 0
              do i = 1+mod(j+rb,2),nx,2
 
                 rhs  = b(i,j,k)                                                            & ! ijk
@@ -253,17 +249,18 @@ contains
                      - cA(7,i  ,j  ,k  ) * p(i-1,j  ,k  ) - cA(7,i+1,j  ,k) * p(i+1,j  ,k) & ! ijk
                      - cA(8,i  ,j  ,k  ) * p(i-1,j  ,k-1)                                    ! ijk
 
-                is = is+1
-                gam(is,j,k) = cA(2,i,j,k) * bet(is,j,k-1)
-                bet(is,j,k) = one / ( cA(1,i,j,k) - cA(2,i,j,k) * gam(is,j,k) )
-                p2 (is,j,k) = ( rhs  - cA(2,i,j,k) * p2(is,j,k-1) ) * bet(is,j,k)
+!                d(i,j,k)   = cA(1,i,j,k) ! ijk
+
+                gam(i,j,k) = cA(2,i,j,k) * bet(i,j,k-1)
+                bet(i,j,k) = one / ( cA(1,i,j,k) - cA(2,i,j,k) * gam(i,j,k) )
+                p2(i,j,k)  = ( rhs  - cA(2,i,j,k) * p2(i,j,k-1) ) * bet(i,j,k)
 
              enddo ! i
           enddo ! j
 
           do k=nz-1,1,-1
              do j = 1, ny
-                do i = 1,nx/2
+                do i = 1+mod(j+rb,2),nx,2
                    p2(i,j,k) = p2(i,j,k) - gam(i,j,k+1) * p2(i,j,k+1)
                 enddo ! i
              enddo ! j
@@ -271,10 +268,8 @@ contains
 
           do k=1,nz
              do j = 1, ny
-                is = 0
                 do i = 1+mod(j+rb,2),nx,2
-                   is = is + 1
-                   p(i,j,k) = p2(is,j,k)
+                   p(i,j,k) = p2(i,j,k)
                 enddo ! i
              enddo ! j
           enddo ! k=1,nz
