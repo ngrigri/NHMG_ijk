@@ -42,6 +42,11 @@ Debugging with DDT:
 module load ddt/4.2.2
 ddt &
 
+git :
+---
+to color git informations:
+git config --global color.ui auto
+
 github :
 ------
 git clone git://github.com/ngrigri/NHMG_ijk.git
