@@ -164,149 +164,23 @@ contains
     real(kind=rp),dimension(:,:,:)  , pointer, intent(in)   :: b
     real(kind=rp),dimension(:,:,:,:), pointer, intent(in)   :: cA
 
-    !- Local -!
-    integer(kind=ip) :: i,j,k,it
-    integer(kind=ip) :: is
+    integer(kind=ip) :: i,j,it
     integer(kind=ip) :: rb
 
-    real(kind=rp),dimension(nx/2,ny)    :: rhs
-    real(kind=rp),dimension(nx/2,ny,nz) :: gam ! nx has to be divisible by 2
-    real(kind=rp),dimension(nx/2,ny,nz) :: bet ! nx has to be divisible by 2
-    real(kind=rp),dimension(nx/2,ny,nz) :: p2  ! nx has to be divisible by 2
-
     call tic(lev,'relax_3D_8_RB')
-
-    ! Coefficients are stored in order of diagonals
-    ! cA(1,:,:,:)      -> p(i  ,j  ,k  )
-    ! cA(2,:,:,:)      -> p(i  ,j  ,k-1)
-    ! cA(3,:,:,:)      -> p(i  ,j-1,k+1)
-    ! cA(4,:,:,:)      -> p(i  ,j-1,k  )
-    ! cA(5,:,:,:)      -> p(i  ,j-1,k-1)
-    ! cA(6,:,:,:)      -> p(i-1,j  ,k+1)
-    ! cA(7,:,:,:)      -> p(i-1,j  ,k  )
-    ! cA(8,:,:,:)      -> p(i-1,j  ,k-1)
 
     ! add a loop on smoothing
     do it = 1,nsweeps
 
        do rb = 1, 2 ! Red black loop
 
-          !---------------!
-          !- lower level -!
-          !---------------!
-          k=1
-
           do j = 1, ny
-             is = 0
              do i = 1+mod(j+rb,2),nx,2
-                is = is+1
-                rhs(is,j) = b(i,j,k)                                                     & ! ijk
-                     - cA(3,i  ,j  ,k  ) * p(i,j-1,k+1)                                  & ! ijk
-                     - cA(4,i  ,j  ,k  ) * p(i,j-1,k  ) - cA(4,i  ,j+1,k) * p(i  ,j+1,k) & ! ijk
-                     - cA(5,i  ,j+1,k+1) * p(i,j+1,k+1)                                  & ! ijk
-                     - cA(6,i  ,j  ,k  ) * p(i-1,j,k+1)                                  & ! ijk
-                     - cA(7,i  ,j  ,k  ) * p(i-1  ,j,k) - cA(7,i+1,j  ,k) * p(i+1,j  ,k) & ! ijk
-                     - cA(8,i+1,j  ,k+1) * p(i+1,j,k+1)                                    ! ijk
 
-                if (cmatrix == 'real') then
-                   !- Exception for the redefinition of the coef for the bottom level
-                   rhs(is,j) = rhs(is,j)   &
-                        - cA(5,i,j,k) * p(i-1,j+1,k) - cA(5,i+1,j-1,k) * p(i+1,j-1,k) & ! ijk
-                        - cA(8,i,j,k) * p(i-1,j-1,k) - cA(8,i+1,j+1,k) * p(i+1,j+1,k)    ! ijk
-                endif
-             enddo ! i
-          enddo  ! j
-
-          do j = 1, ny
-             is = 0
-             do i = 1+mod(j+rb,2),nx,2
-                is = is+1
-                bet(is,j,k) = one / cA(1,i,j,k) ! k=1
-                p2 (is,j,k) = rhs(is,j) * bet(is,j,k) ! k=1
-             enddo ! i
-          enddo  ! j
-
-          !-------------------!
-          !- Interior levels -!
-          !-------------------!
-          do k=2,nz-1
-             do j = 1, ny
-                is = 0
-                do i = 1+mod(j+rb,2),nx,2
-                   is = is+1
-                   rhs(is,j)  = b(i,j,k)                                                    & ! ijk
-                        - cA(3,i,j,k) * p(i  ,j-1,k+1) - cA(3,i  ,j+1,k-1) * p(i  ,j+1,k-1) & ! ijk
-                        - cA(4,i,j,k) * p(i  ,j-1,k  ) - cA(4,i  ,j+1,k  ) * p(i  ,j+1,k  ) & ! ijk
-                        - cA(5,i,j,k) * p(i  ,j-1,k-1) - cA(5,i  ,j+1,k+1) * p(i  ,j+1,k+1) & ! ijk
-                        - cA(6,i,j,k) * p(i-1,j  ,k+1) - cA(6,i+1,j  ,k-1) * p(i+1,j  ,k-1) & ! ijk
-                        - cA(7,i,j,k) * p(i-1,j  ,k  ) - cA(7,i+1,j  ,k  ) * p(i+1,j  ,k  ) & ! ijk
-                        - cA(8,i,j,k) * p(i-1,j,  k-1) - cA(8,i+1,j  ,k+1) * p(i+1,j  ,k+1)   ! ijk
-                enddo ! i
-             enddo  ! j
-
-             do j = 1, ny
-                is = 0
-                do i = 1+mod(j+rb,2),nx,2
-                   is = is+1
-                   gam(is,j,k) = cA(2,i,j,k) * bet(is,j,k-1)
-                   bet(is,j,k) = one / ( cA(1,i,j,k) - cA(2,i,j,k) * gam(is,j,k) )
-                   p2 (is,j,k) = ( rhs(is,j) - cA(2,i,j,k) * p2(is,j,k-1) ) * bet(is,j,k)
-                enddo ! i
-             enddo ! j
-          enddo ! k=2,nz
-
-          !---------------!
-          !- Upper level -!
-          !---------------!
-          k=nz !upper level
-          do j = 1, ny
-             is = 0
-             do i = 1+mod(j+rb,2),nx,2
-              is = is+1
-                rhs(is,j)  = b(i,j,k)                                                      & ! ijk
-                     - cA(3,i  ,j+1,k-1) * p(i  ,j+1,k-1)                                  & ! ijk
-                     - cA(4,i  ,j  ,k  ) * p(i  ,j-1,k  ) - cA(4,i  ,j+1,k)  *p(i  ,j+1,k) & ! ijk
-                     - cA(5,i  ,j  ,k  ) * p(i  ,j-1,k-1)                                  & ! ijk
-                     - cA(6,i+1,j  ,k-1) * p(i+1,j  ,k-1)                                  & ! ijk
-                     - cA(7,i  ,j  ,k  ) * p(i-1,j  ,k  ) - cA(7,i+1,j  ,k) * p(i+1,j  ,k) & ! ijk
-                     - cA(8,i  ,j  ,k  ) * p(i-1,j  ,k-1)                                    ! ijk
-                enddo ! i
-             enddo  ! j
-
-             do j = 1, ny
-                is = 0
-                do i = 1+mod(j+rb,2),nx,2
-                is = is+1
-                gam(is,j,k) = cA(2,i,j,k) * bet(is,j,k-1)
-                bet(is,j,k) = one / ( cA(1,i,j,k) - cA(2,i,j,k) * gam(is,j,k) )
-                p2 (is,j,k) = ( rhs(is,j)  - cA(2,i,j,k) * p2(is,j,k-1) ) * bet(is,j,k)
+                call relax_3D_8_heart(p,b,cA,i,j,nz)
 
              enddo ! i
-          enddo ! j
-
-          !----------------------------------!
-          !- 2nd part of the Tridiag Solver -!
-          !----------------------------------!
-          do k=nz-1,1,-1
-             do j = 1, ny
-                do i = 1,nx/2
-                   p2(i,j,k) = p2(i,j,k) - gam(i,j,k+1) * p2(i,j,k+1)
-                enddo ! i
-             enddo ! j
-          enddo ! k = nz-1,1,-1
-
-          !----------------------------!
-          !- Copy solver results in p -!
-          !----------------------------!
-          do k=1,nz
-             do j = 1, ny
-                is = 0
-                do i = 1+mod(j+rb,2),nx,2
-                   is = is + 1
-                   p(i,j,k) = p2(is,j,k)
-                enddo ! i
-             enddo ! j
-          enddo ! k=1,nz
+          enddo    ! j
 
           call fill_halo(lev,p)
 
@@ -358,7 +232,7 @@ contains
 
   end subroutine relax_3D_8_FC
 
-  !---------------------------------------------------------------------
+  !----------------------------------------
   subroutine relax_3D_8_heart(p,b,cA,i,j,nz)
 
     real(kind=rp),dimension(:,:,:)  , pointer, intent(inout):: p
@@ -372,10 +246,6 @@ contains
     !- Local -!
     integer(kind=ip) :: k
     real(kind=rp), dimension(nz) :: rhs, d, ud
-
-    real(kind=rp),dimension(nz):: gam
-    real(kind=rp)              :: bet
-
 
     ! Coefficients are stored in order of diagonals
     ! cA(1,:,:,:)      -> p(i  ,j  ,k  )
@@ -428,20 +298,37 @@ contains
          - cA(8,i  ,j  ,k  ) * p(i-1,j  ,k-1)                                    ! ijk
     d(k)   = cA(1,i,j,k) ! ijk
 
-    bet      = one / d(1)
-    p(i,j,1) = rhs(1) * bet
-
-    do k=2,nz
-       gam(k)   = ud(k-1) * bet
-       bet      = one / ( d(k) - ud(k-1) * gam(k) )
-       p(i,j,k) = ( rhs(k) - ud(k-1) * p(i,j,k-1) ) * bet
-    enddo
-
-    do k=nz-1,1,-1
-       p(i,j,k) = p(i,j,k) - gam(k+1) * p(i,j,k+1)
-    enddo
+    call tridiag(nz,d,ud,rhs,p(i,j,:)) !solve for vertical_coeff_matrix.p1d=rhs
 
   end subroutine relax_3D_8_heart
+
+  !----------------------------------------
+  subroutine tridiag(l,d,dd,b,xc)
+    !     Axc = b
+    !     Solve tridiagonal system
+    implicit none
+    !     IMPORT/EXPORT
+    integer                   ,intent(in)  :: l
+    real(kind=rp),dimension(l),intent(in)  :: d,b
+    real(kind=rp),dimension(l),intent(in)  :: dd
+    real(kind=rp),dimension(l),intent(out) :: xc
+    !     LOCAL
+    integer                  :: k
+    real(kind=rp),dimension(l):: gam
+    real(kind=rp)             :: bet
+
+    bet   = one / d(1)
+    xc(1) = b(1)*bet
+    do k=2,l
+       gam(k)= dd(k-1)*bet
+       bet     = one /(d(k)-dd(k-1)*gam(k))
+       xc(k) = (b(k)-dd(k-1)*xc(k-1))*bet
+    enddo
+    do k=l-1,1,-1
+       xc(k) = xc(k)-gam(k+1)*xc(k+1)
+    enddo
+    !    endif
+  end subroutine tridiag
 
   !----------------------------------------
   subroutine compute_residual(lev,res)

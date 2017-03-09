@@ -336,13 +336,22 @@ contains
   end subroutine nhmg_solve
 
   !--------------------------------------------------------------
-  subroutine nhmg_clean()
+  subroutine nhmg_clean(ptr_perf)
+
+    logical,optional :: ptr_perf
 
     real(kind=rp) :: tstart,tend,perf
+    logical :: pp
 
     call grids_dealloc()
 
-    call print_tictoc()
+    if (present(ptr_perf)) then
+       pp = ptr_perf
+    else
+       pp = .true.
+    end if
+
+    if (pp) call print_tictoc()
 
   end subroutine nhmg_clean
 

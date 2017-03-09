@@ -263,7 +263,7 @@ contains
              is = 0
              do i = 1+mod(j+rb,2),nx,2
               is = is+1
-                rhs(is,j)  = b(i,j,k)                                                      & ! ijk
+                rhs(is,j)  = b(i,j,k)                                                            & ! ijk
                      - cA(3,i  ,j+1,k-1) * p(i  ,j+1,k-1)                                  & ! ijk
                      - cA(4,i  ,j  ,k  ) * p(i  ,j-1,k  ) - cA(4,i  ,j+1,k)  *p(i  ,j+1,k) & ! ijk
                      - cA(5,i  ,j  ,k  ) * p(i  ,j-1,k-1)                                  & ! ijk

@@ -190,7 +190,8 @@ program mg_testseamount
   !- Deallocate memory -!
   !---------------------!
   if (rank == 0) write(*,*)' Clean memory before to finish the program.'
-  call nhmg_clean()
+
+  call nhmg_clean(ptr_perf=.false.)
 
   !----------------------!
   !- End Bench-seamount -!
@@ -198,7 +199,7 @@ program mg_testseamount
   call mpi_finalize(ierr)
 
   call toc(1,'test_seamount')
-  if(rank == 0) call print_tictoc(rank)
+  if (rank == 0) call print_tictoc(rank)
 
 end program mg_testseamount
 
