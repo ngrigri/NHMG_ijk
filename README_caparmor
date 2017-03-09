@@ -21,7 +21,7 @@ module load ncview/2.1.2_intel
 
 Configuration and compilation:
 -----------------------------
-./configure --prefix=/home2/caparmor/grima/NHMG/INTEL_MPI --enable-intel_mpi  --enable-netcdf [--enable-traceanalyser] [--enable-optimization=aggressive] [--enable-profiling]
+./configure --prefix=/home2/caparmor/grima/NHMG_ijk/INTEL_MPI --enable-intel_mpi  --enable-netcdf [--enable-traceanalyser] [--enable-optimization=aggressive] [--enable-profiling]
 
 ==> HERE A TRICK TO USE MAKE WITH GIT ON A DIFFERENT COMPUTER: https://github.com/hyperrealm/libconfig/issues/22
 make clean   AUTOCONF=: AUTOHEADER=: AUTOMAKE=: ACLOCAL=:
@@ -44,8 +44,11 @@ ddt &
 
 github :
 ------
+git clone git://github.com/ngrigri/NHMG_ijk.git
 
-git remote set-url origin git@github.com:ngrigri/NHMG.git
+cd NHMG_ijk
+
+git remote set-url origin git@github.com:ngrigri/NHMG_ijk.git
 
 ssh-keygen
 
